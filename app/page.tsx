@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
-import { Dumbbell, Bell, ExternalLink, Calendar } from "lucide-react";
+import { Dumbbell, ExternalLink, Calendar } from "lucide-react";
+import NotificationBell from "./components/NotificationBell";
 
 type GymStatus = {
   id: number;
@@ -107,7 +108,7 @@ export default function Home() {
               <p className="text-xs text-muted">Daily Workouts</p>
             </div>
           </div>
-          <Bell className="w-5 h-5 text-muted" />
+          <NotificationBell />
         </div>
       </header>
 
