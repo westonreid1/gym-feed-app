@@ -8,6 +8,10 @@ declare global {
   }
 }
 
+interface OneSignalSDK {
+  init: (config: { appId: string; allowLocalhostAsSecureOrigin: boolean }) => Promise<void>;
+}
+
 export default function OneSignalInit() {
   useEffect(() => {
     const appId = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID;
@@ -19,7 +23,8 @@ export default function OneSignalInit() {
     script.defer = true;
     script.onload = () => {
       window.OneSignalDeferred = window.OneSignalDeferred || [];
-      window.OneSignalDeferred.push(async (OneSignal: { init: (config: { appId: string; allowLocalhostAsSecureOrigin: boolean }) => Promise<void> }) => {
+      window.OneSignalDeferred.push(async (os: unknown) => {
+        const OneSignal = os as OneSignalSDK;
         await OneSignal.init({
           appId: appId,
           allowLocalhostAsSecureOrigin: true,
@@ -41,6 +46,3 @@ export default function OneSignalInit() {
 
   return null;
 }
-
-
-
