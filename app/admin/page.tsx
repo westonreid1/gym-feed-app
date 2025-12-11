@@ -66,8 +66,28 @@ export default function AdminPage() {
 
     if (!error) {
       setStatus({ ...status, is_open: newIsOpen });
+      
+      // Send push notification when gym closes
+      if (!newIsOpen) {
+        await sendClosedNotification(message || "The gym is now closed");
+      }
     }
     setStatusLoading(false);
+  }
+
+  async function sendClosedNotification(statusMessage: string) {
+    try {
+      await fetch("/api/send-notification", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: "🏋️ Gym Closed",
+          message: statusMessage,
+        }),
+      });
+    } catch (err) {
+      console.error("Failed to send notification:", err);
+    }
   }
 
   async function updateMessage() {
