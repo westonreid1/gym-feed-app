@@ -22,7 +22,7 @@ export async function POST(request: Request) {
       },
       body: JSON.stringify({
         app_id: appId,
-        included_segments: ["Subscribed Users"],
+        included_segments: ["Total Subscriptions"],
         headings: { en: title },
         contents: { en: message },
         url: process.env.NEXT_PUBLIC_SITE_URL || "/",
@@ -48,6 +48,3 @@ export async function POST(request: Request) {
     );
   }
 }
-
-
-
