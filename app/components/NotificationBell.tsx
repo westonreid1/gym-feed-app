@@ -3,12 +3,6 @@
 import { useState, useEffect } from "react";
 import { Bell, BellOff, Loader2 } from "lucide-react";
 
-declare global {
-  interface Window {
-    OneSignalDeferred?: Array<(OneSignal: OneSignalType) => void>;
-  }
-}
-
 interface OneSignalType {
   Notifications: {
     permission: boolean;
@@ -23,6 +17,10 @@ interface OneSignalType {
   };
 }
 
+type OneSignalWindow = Window & {
+  OneSignalDeferred?: Array<(OneSignal: OneSignalType) => void>;
+};
+
 export default function NotificationBell() {
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -33,8 +31,9 @@ export default function NotificationBell() {
     const checkSubscription = () => {
       if (typeof window === "undefined") return;
       
-      window.OneSignalDeferred = window.OneSignalDeferred || [];
-      window.OneSignalDeferred.push((OneSignal) => {
+      const win = window as OneSignalWindow;
+      win.OneSignalDeferred = win.OneSignalDeferred || [];
+      win.OneSignalDeferred.push((OneSignal) => {
         setIsSubscribed(OneSignal.User.PushSubscription.optedIn);
         setIsLoading(false);
       });
@@ -56,8 +55,9 @@ export default function NotificationBell() {
     if (typeof window === "undefined") return;
     setIsLoading(true);
 
-    window.OneSignalDeferred = window.OneSignalDeferred || [];
-    window.OneSignalDeferred.push(async (OneSignal) => {
+    const win = window as OneSignalWindow;
+    win.OneSignalDeferred = win.OneSignalDeferred || [];
+    win.OneSignalDeferred.push(async (OneSignal) => {
       try {
         if (isSubscribed) {
           await OneSignal.User.PushSubscription.optOut();
