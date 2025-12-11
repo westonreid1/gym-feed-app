@@ -12,6 +12,10 @@ import {
   Loader2,
   Check,
   Home,
+  Pencil,
+  Trash2,
+  X,
+  Calendar,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -21,29 +25,47 @@ type GymStatus = {
   message: string;
 };
 
+type Post = {
+  id: number;
+  content: string;
+  created_at: string;
+};
+
 export default function AdminPage() {
   const [status, setStatus] = useState<GymStatus | null>(null);
   const [message, setMessage] = useState("");
   const [newPost, setNewPost] = useState("");
+  const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusLoading, setStatusLoading] = useState(false);
   const [postLoading, setPostLoading] = useState(false);
   const [postSuccess, setPostSuccess] = useState(false);
+  const [editingPost, setEditingPost] = useState<Post | null>(null);
+  const [editContent, setEditContent] = useState("");
+  const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
   const router = useRouter();
 
-  const fetchStatus = useCallback(async () => {
+  const fetchData = useCallback(async () => {
     const supabase = createClient();
-    const { data } = await supabase.from("gym_status").select("*").single();
-    if (data) {
-      setStatus(data);
-      setMessage(data.message);
+    
+    const { data: statusData } = await supabase.from("gym_status").select("*").single();
+    if (statusData) {
+      setStatus(statusData);
+      setMessage(statusData.message);
     }
+
+    const { data: postsData } = await supabase
+      .from("posts")
+      .select("*")
+      .order("created_at", { ascending: false });
+    
+    setPosts(postsData || []);
     setLoading(false);
   }, []);
 
   useEffect(() => {
-    fetchStatus();
-  }, [fetchStatus]);
+    fetchData();
+  }, [fetchData]);
 
   async function handleLogout() {
     const supabase = createClient();
@@ -67,7 +89,6 @@ export default function AdminPage() {
     if (!error) {
       setStatus({ ...status, is_open: newIsOpen });
       
-      // Send push notification when gym closes
       if (!newIsOpen) {
         await sendClosedNotification(message || "The gym is now closed");
       }
@@ -113,14 +134,74 @@ export default function AdminPage() {
 
     const supabase = createClient();
 
-    const { error } = await supabase.from("posts").insert({ content: newPost });
+    const { data, error } = await supabase
+      .from("posts")
+      .insert({ content: newPost })
+      .select()
+      .single();
 
-    if (!error) {
+    if (!error && data) {
+      setPosts([data, ...posts]);
       setNewPost("");
       setPostSuccess(true);
       setTimeout(() => setPostSuccess(false), 2000);
     }
     setPostLoading(false);
+  }
+
+  async function updatePost() {
+    if (!editingPost || !editContent.trim()) return;
+    setPostLoading(true);
+
+    const supabase = createClient();
+
+    const { error } = await supabase
+      .from("posts")
+      .update({ content: editContent })
+      .eq("id", editingPost.id);
+
+    if (!error) {
+      setPosts(posts.map(p => 
+        p.id === editingPost.id ? { ...p, content: editContent } : p
+      ));
+      setEditingPost(null);
+      setEditContent("");
+    }
+    setPostLoading(false);
+  }
+
+  async function deletePost(id: number) {
+    const supabase = createClient();
+
+    const { error } = await supabase
+      .from("posts")
+      .delete()
+      .eq("id", id);
+
+    if (!error) {
+      setPosts(posts.filter(p => p.id !== id));
+    }
+    setDeleteConfirm(null);
+  }
+
+  function startEditing(post: Post) {
+    setEditingPost(post);
+    setEditContent(post.content);
+  }
+
+  function cancelEditing() {
+    setEditingPost(null);
+    setEditContent("");
+  }
+
+  function formatDate(dateString: string) {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    });
   }
 
   if (loading) {
@@ -264,8 +345,108 @@ export default function AdminPage() {
             </button>
           </div>
         </section>
+
+        {/* Existing Posts */}
+        {posts.length > 0 && (
+          <section className="rounded-2xl bg-card border border-card-border p-6">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center">
+                <Calendar className="w-5 h-5 text-accent" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold">Posted Workouts</h2>
+                <p className="text-sm text-muted">Edit or delete existing posts</p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              {posts.map((post) => (
+                <div
+                  key={post.id}
+                  className="bg-background border border-card-border rounded-xl p-4"
+                >
+                  {editingPost?.id === post.id ? (
+                    // Edit mode
+                    <div className="space-y-3">
+                      <textarea
+                        value={editContent}
+                        onChange={(e) => setEditContent(e.target.value)}
+                        rows={4}
+                        className="w-full bg-card border border-card-border rounded-xl py-3 px-4 text-foreground focus:outline-none focus:border-accent transition-colors resize-none"
+                      />
+                      <div className="flex gap-2">
+                        <button
+                          onClick={updatePost}
+                          disabled={postLoading || !editContent.trim()}
+                          className="flex-1 bg-accent hover:bg-accent/90 disabled:bg-accent/30 text-background font-semibold py-2 px-4 rounded-xl transition-all flex items-center justify-center gap-2"
+                        >
+                          {postLoading ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <>
+                              <Check className="w-4 h-4" />
+                              Save
+                            </>
+                          )}
+                        </button>
+                        <button
+                          onClick={cancelEditing}
+                          className="px-4 py-2 rounded-xl border border-card-border text-muted hover:text-foreground transition-colors"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ) : deleteConfirm === post.id ? (
+                    // Delete confirmation
+                    <div className="space-y-3">
+                      <p className="text-accent-red font-medium">Delete this workout?</p>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => deletePost(post.id)}
+                          className="flex-1 bg-accent-red hover:bg-accent-red/90 text-white font-semibold py-2 px-4 rounded-xl transition-all"
+                        >
+                          Yes, Delete
+                        </button>
+                        <button
+                          onClick={() => setDeleteConfirm(null)}
+                          className="px-4 py-2 rounded-xl border border-card-border text-muted hover:text-foreground transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    // View mode
+                    <>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs text-muted">{formatDate(post.created_at)}</span>
+                        <div className="flex gap-1">
+                          <button
+                            onClick={() => startEditing(post)}
+                            className="p-2 rounded-lg text-muted hover:text-accent hover:bg-accent/10 transition-colors"
+                            title="Edit"
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => setDeleteConfirm(post.id)}
+                            className="p-2 rounded-lg text-muted hover:text-accent-red hover:bg-accent-red/10 transition-colors"
+                            title="Delete"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                      <p className="text-foreground whitespace-pre-wrap">{post.content}</p>
+                    </>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
       </main>
     </div>
   );
 }
-
