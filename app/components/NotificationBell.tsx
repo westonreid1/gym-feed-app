@@ -18,7 +18,7 @@ interface OneSignalType {
 }
 
 type OneSignalWindow = Window & {
-  OneSignalDeferred?: Array<(OneSignal: OneSignalType) => void>;
+  OneSignalDeferred?: Array<(OneSignal: unknown) => void>;
 };
 
 export default function NotificationBell() {
@@ -33,7 +33,8 @@ export default function NotificationBell() {
       
       const win = window as OneSignalWindow;
       win.OneSignalDeferred = win.OneSignalDeferred || [];
-      win.OneSignalDeferred.push((OneSignal) => {
+      win.OneSignalDeferred.push((os: unknown) => {
+        const OneSignal = os as OneSignalType;
         setIsSubscribed(OneSignal.User.PushSubscription.optedIn);
         setIsLoading(false);
       });
@@ -57,7 +58,8 @@ export default function NotificationBell() {
 
     const win = window as OneSignalWindow;
     win.OneSignalDeferred = win.OneSignalDeferred || [];
-    win.OneSignalDeferred.push(async (OneSignal) => {
+    win.OneSignalDeferred.push(async (os: unknown) => {
+      const OneSignal = os as OneSignalType;
       try {
         if (isSubscribed) {
           await OneSignal.User.PushSubscription.optOut();
