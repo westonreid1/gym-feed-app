@@ -24,6 +24,7 @@ type OneSignalWindow = Window & {
 export default function NotificationBell() {
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSupported, setIsSupported] = useState(true);
 
   useEffect(() => {
     // Check if OneSignal is loaded and get subscription status
@@ -33,12 +34,8 @@ export default function NotificationBell() {
       const win = window as OneSignalWindow;
       win.OneSignalDeferred = win.OneSignalDeferred || [];
       win.OneSignalDeferred.push((os: unknown) => {
-        try {
-          const OneSignal = os as OneSignalType;
-          setIsSubscribed(OneSignal.User.PushSubscription.optedIn);
-        } catch (e) {
-          console.log("OneSignal check error:", e);
-        }
+        const OneSignal = os as OneSignalType;
+        setIsSubscribed(OneSignal.User.PushSubscription.optedIn);
         setIsLoading(false);
       });
     };
@@ -46,30 +43,22 @@ export default function NotificationBell() {
     // Wait a bit for OneSignal to initialize
     const timer = setTimeout(checkSubscription, 1000);
     
-    // Fallback: stop loading after 5 seconds if OneSignal never responds
-    const fallback = setTimeout(() => {
+    // Also check if push is supported
+    if (!("Notification" in window)) {
+      setIsSupported(false);
       setIsLoading(false);
-    }, 5000);
+    }
 
-    return () => {
-      clearTimeout(timer);
-      clearTimeout(fallback);
-    };
+    return () => clearTimeout(timer);
   }, []);
 
   async function handleToggle() {
     if (typeof window === "undefined") return;
     setIsLoading(true);
 
-    // Timeout fallback - stop loading after 10 seconds
-    const timeout = setTimeout(() => {
-      setIsLoading(false);
-    }, 10000);
-
     const win = window as OneSignalWindow;
     win.OneSignalDeferred = win.OneSignalDeferred || [];
     win.OneSignalDeferred.push(async (os: unknown) => {
-      clearTimeout(timeout);
       const OneSignal = os as OneSignalType;
       try {
         if (isSubscribed) {
@@ -85,6 +74,10 @@ export default function NotificationBell() {
       }
       setIsLoading(false);
     });
+  }
+
+  if (!isSupported) {
+    return null;
   }
 
   return (
