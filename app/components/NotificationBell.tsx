@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Bell, BellOff, Loader2 } from "lucide-react";
 
-// Declare OneSignal on window
+// Declare OneSignal on window - matching OneSignal Web SDK v16
 declare global {
   interface Window {
     OneSignal?: {
@@ -20,10 +20,9 @@ declare global {
         addTag: (key: string, value: string) => Promise<void>;
         removeTag: (key: string) => Promise<void>;
         addTags: (tags: Record<string, string>) => Promise<void>;
-        getTags: () => Promise<Record<string, string>>;
+        removeTags: (keys: string[]) => Promise<void>;
       };
     };
-    OneSignalDeferred?: Array<(OneSignal: Window['OneSignal']) => void>;
   }
 }
 
@@ -68,80 +67,89 @@ export default function NotificationBell({ businessId, businessSlug }: Notificat
   }, []);
 
   async function handleToggle() {
-    if (!window.OneSignal) {
-      console.error("OneSignal not loaded");
+    const OneSignal = window.OneSignal;
+    
+    if (!OneSignal) {
+      console.error("🔔 OneSignal not loaded");
       return;
     }
 
     setIsLoading(true);
-    console.log("🔔 NotificationBell: Starting toggle, businessId:", businessId);
+    console.log("🔔 Starting toggle, businessId:", businessId, "businessSlug:", businessSlug);
 
     try {
       if (isSubscribed) {
         // Unsubscribe
-        await window.OneSignal.User.PushSubscription.optOut();
+        console.log("🔔 Opting out...");
+        await OneSignal.User.PushSubscription.optOut();
         
-        // Remove business tags when unsubscribing
+        // Remove tags
         if (businessId) {
           try {
-            await window.OneSignal.User.removeTag("business_id");
-            await window.OneSignal.User.removeTag("business_slug");
+            console.log("🔔 Removing tags...");
+            await OneSignal.User.removeTags(["business_id", "business_slug"]);
             console.log("🔔 Tags removed");
-          } catch (tagErr) {
-            console.error("🔔 Failed to remove tags:", tagErr);
+          } catch (e) {
+            console.error("🔔 Failed to remove tags:", e);
           }
         }
         
         setIsSubscribed(false);
-        console.log("🔔 Unsubscribed successfully");
+        console.log("🔔 Unsubscribed");
       } else {
         // Subscribe
         console.log("🔔 Requesting permission...");
-        await window.OneSignal.Notifications.requestPermission();
+        await OneSignal.Notifications.requestPermission();
         
         console.log("🔔 Opting in...");
-        await window.OneSignal.User.PushSubscription.optIn();
+        await OneSignal.User.PushSubscription.optIn();
         
-        // Wait a moment for subscription to fully register
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        // Tag user with business ID so we can filter notifications
+        // Add tags - wait a bit for subscription to register
         if (businessId || businessSlug) {
-          console.log("🔔 Adding tags...", { businessId, businessSlug });
+          // Small delay to ensure subscription is registered
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+          const tags: Record<string, string> = {};
+          if (businessId) tags["business_id"] = businessId;
+          if (businessSlug) tags["business_slug"] = businessSlug;
+          
+          console.log("🔔 Adding tags:", tags);
+          
           try {
-            // Try adding tags one at a time for better reliability
-            if (businessId) {
-              await window.OneSignal.User.addTag("business_id", businessId);
-              console.log("🔔 Added business_id tag");
-            }
-            if (businessSlug) {
-              await window.OneSignal.User.addTag("business_slug", businessSlug);
-              console.log("🔔 Added business_slug tag");
-            }
+            await OneSignal.User.addTags(tags);
+            console.log("🔔 Tags added successfully!");
+          } catch (e) {
+            console.error("🔔 addTags failed:", e);
             
-            // Verify tags were set
-            if (window.OneSignal.User.getTags) {
-              const tags = await window.OneSignal.User.getTags();
-              console.log("🔔 Current tags:", tags);
+            // Fallback: try adding one at a time
+            console.log("🔔 Trying individual addTag calls...");
+            try {
+              if (businessId) {
+                await OneSignal.User.addTag("business_id", businessId);
+                console.log("🔔 business_id tag added");
+              }
+              if (businessSlug) {
+                await OneSignal.User.addTag("business_slug", businessSlug);
+                console.log("🔔 business_slug tag added");
+              }
+            } catch (e2) {
+              console.error("🔔 Individual addTag also failed:", e2);
             }
-          } catch (tagErr) {
-            console.error("🔔 Failed to add tags:", tagErr);
           }
         } else {
-          console.warn("🔔 No businessId or businessSlug provided to NotificationBell!");
+          console.warn("🔔 No businessId or businessSlug provided!");
         }
         
         setIsSubscribed(true);
-        console.log("🔔 Subscribed successfully");
+        console.log("🔔 Subscribed");
       }
     } catch (err) {
-      console.error("🔔 Notification toggle failed:", err);
+      console.error("🔔 Toggle failed:", err);
     }
 
     setIsLoading(false);
   }
 
-  // Always show the bell - don't hide it
   return (
     <button
       onClick={handleToggle}
