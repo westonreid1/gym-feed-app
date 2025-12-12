@@ -33,16 +33,28 @@ export default function NotificationBell() {
       const win = window as OneSignalWindow;
       win.OneSignalDeferred = win.OneSignalDeferred || [];
       win.OneSignalDeferred.push((os: unknown) => {
-        const OneSignal = os as OneSignalType;
-        setIsSubscribed(OneSignal.User.PushSubscription.optedIn);
+        try {
+          const OneSignal = os as OneSignalType;
+          setIsSubscribed(OneSignal.User.PushSubscription.optedIn);
+        } catch (e) {
+          console.log("OneSignal check error:", e);
+        }
         setIsLoading(false);
       });
     };
 
     // Wait a bit for OneSignal to initialize
     const timer = setTimeout(checkSubscription, 1000);
+    
+    // Fallback: stop loading after 5 seconds if OneSignal never responds
+    const fallback = setTimeout(() => {
+      setIsLoading(false);
+    }, 5000);
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      clearTimeout(fallback);
+    };
   }, []);
 
   async function handleToggle() {
