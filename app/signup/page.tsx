@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { createClient } from "@/utils/supabase/client";
-import { Zap, Mail, Loader2, ArrowLeft, CheckCircle2, ArrowRight } from "lucide-react";
+import { Zap, Mail, Loader2, ArrowLeft, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 
 export default function SignupPage() {
@@ -18,7 +18,7 @@ export default function SignupPage() {
 
     const supabase = createClient();
 
-    // Send magic link
+    // Send magic link - this works for both signup and signin
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
@@ -56,27 +56,22 @@ export default function SignupPage() {
               <CheckCircle2 className="w-10 h-10 text-accent" />
             </div>
             <h1 className="text-2xl font-bold mb-3">Check your email!</h1>
-            <p className="text-muted mb-2">
-              We sent a magic link to:
+            <p className="text-muted mb-6">
+              We sent a magic link to <span className="text-foreground font-medium">{email}</span>
             </p>
-            <p className="text-foreground font-medium text-lg mb-6">
-              {email}
+            <p className="text-muted text-sm mb-8">
+              Click the link in the email to create your account and set up your status board.
             </p>
-            <p className="text-muted text-sm">
-              Click the link in the email to create your account and set up your business.
-            </p>
-
-            <div className="mt-8 pt-6 border-t border-card-border">
-              <p className="text-muted text-sm mb-3">Didn't receive it?</p>
+            <div className="space-y-3">
               <button
-                onClick={() => {
-                  setSent(false);
-                  setEmail("");
-                }}
-                className="text-accent hover:text-accent/80 font-medium transition-colors"
+                onClick={() => setSent(false)}
+                className="w-full bg-card border border-card-border hover:border-accent/30 text-foreground font-medium py-3 px-6 rounded-xl transition-all"
               >
-                Try again with a different email
+                Use a different email
               </button>
+              <p className="text-muted text-sm">
+                Didn't get the email? Check your spam folder.
+              </p>
             </div>
           </div>
         </main>
@@ -87,13 +82,19 @@ export default function SignupPage() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
-      <header className="px-6 py-4">
+      <header className="px-6 py-4 flex items-center justify-between">
         <Link
           href="/home"
           className="inline-flex items-center gap-2 text-muted hover:text-foreground transition-colors"
         >
           <ArrowLeft className="w-5 h-5" />
           <span>Back</span>
+        </Link>
+        <Link
+          href="/login"
+          className="text-muted hover:text-foreground transition-colors text-sm"
+        >
+          Already have an account? <span className="text-accent font-medium">Sign in</span>
         </Link>
       </header>
 
@@ -104,8 +105,8 @@ export default function SignupPage() {
             <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-accent to-accent/60 flex items-center justify-center mx-auto mb-4">
               <Zap className="w-8 h-8 text-background" />
             </div>
-            <h1 className="text-2xl font-bold">Create your StatusBoard</h1>
-            <p className="text-muted mt-2">Enter your email to get started. No password needed!</p>
+            <h1 className="text-2xl font-bold">Create your board</h1>
+            <p className="text-muted mt-2">Get started in under 2 minutes</p>
           </div>
 
           {/* Form */}
@@ -136,46 +137,24 @@ export default function SignupPage() {
 
             <button
               type="submit"
-              disabled={loading || !email}
-              className="w-full bg-accent hover:bg-accent/90 disabled:bg-accent/50 text-background font-semibold py-4 px-6 rounded-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+              disabled={loading || !email.trim()}
+              className="w-full bg-accent hover:bg-accent/90 disabled:bg-accent/50 disabled:cursor-not-allowed text-background font-semibold py-4 px-6 rounded-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2"
             >
               {loading ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  <span>Sending...</span>
+                  <span>Sending link...</span>
                 </>
               ) : (
-                <>
-                  <span>Get Started</span>
-                  <ArrowRight className="w-5 h-5" />
-                </>
+                <span>Send me a magic link</span>
               )}
             </button>
           </form>
 
-          {/* Already have account */}
-          <div className="mt-8 pt-6 border-t border-card-border text-center">
-            <p className="text-muted text-sm">
-              Already have an account?{" "}
-              <Link href="/login" className="text-accent hover:text-accent/80 font-medium transition-colors">
-                Sign in
-              </Link>
-            </p>
-          </div>
-
-          {/* Benefits */}
-          <div className="mt-8 space-y-3">
-            {[
-              "Set up in under 2 minutes",
-              "No credit card required",
-              "Free to start",
-            ].map((benefit) => (
-              <div key={benefit} className="flex items-center gap-3 text-sm text-muted">
-                <CheckCircle2 className="w-4 h-4 text-accent flex-shrink-0" />
-                <span>{benefit}</span>
-              </div>
-            ))}
-          </div>
+          {/* Info */}
+          <p className="text-center text-muted text-sm mt-6">
+            We'll email you a magic link to sign in. No password needed!
+          </p>
         </div>
       </main>
     </div>
