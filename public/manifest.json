@@ -1,8 +1,8 @@
 {
   "name": "Hayes Training Systems",
-  "short_name": "Hayes Training",
-  "description": "Daily Workouts",
-  "start_url": "/hayes-training",
+  "short_name": "Hayes Gym",
+  "description": "Your daily workouts and gym updates",
+  "start_url": "/",
   "display": "standalone",
   "background_color": "#0c0c0c",
   "theme_color": "#22c55e",
