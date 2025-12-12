@@ -68,7 +68,7 @@ export default function LandingPage() {
               Sign In
             </Link>
             <Link
-              href="/login"
+              href="/signup"
               className="bg-accent hover:bg-accent/90 text-background font-semibold py-2.5 px-5 rounded-xl transition-all active:scale-[0.98]"
             >
               Get Started
@@ -99,14 +99,14 @@ export default function LandingPage() {
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
-              href="/login"
+              href="/signup"
               className="w-full sm:w-auto bg-accent hover:bg-accent/90 text-background font-semibold py-4 px-8 rounded-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2 text-lg"
             >
               <span>Create Your Board</span>
               <ArrowRight className="w-5 h-5" />
             </Link>
             <Link
-              href="/hayes-training"
+              href="/"
               className="w-full sm:w-auto bg-card hover:bg-card/80 border border-card-border text-foreground font-semibold py-4 px-8 rounded-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2 text-lg"
             >
               <span>See Demo</span>
@@ -244,7 +244,7 @@ export default function LandingPage() {
             </ul>
 
             <Link
-              href="/login"
+              href="/signup"
               className="w-full bg-accent hover:bg-accent/90 text-background font-semibold py-4 px-6 rounded-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2"
             >
               <span>Get Started Free</span>
