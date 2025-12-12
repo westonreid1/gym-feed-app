@@ -25,8 +25,18 @@ export default function NotificationBell() {
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSupported, setIsSupported] = useState(true);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
+    
+    // Check if push is supported
+    if (typeof window !== "undefined" && !("Notification" in window)) {
+      setIsSupported(false);
+      setIsLoading(false);
+      return;
+    }
+
     // Check if OneSignal is loaded and get subscription status
     const checkSubscription = () => {
       if (typeof window === "undefined") return;
@@ -34,8 +44,12 @@ export default function NotificationBell() {
       const win = window as OneSignalWindow;
       win.OneSignalDeferred = win.OneSignalDeferred || [];
       win.OneSignalDeferred.push((os: unknown) => {
-        const OneSignal = os as OneSignalType;
-        setIsSubscribed(OneSignal.User.PushSubscription.optedIn);
+        try {
+          const OneSignal = os as OneSignalType;
+          setIsSubscribed(OneSignal.User.PushSubscription.optedIn);
+        } catch (e) {
+          console.error("OneSignal subscription check failed:", e);
+        }
         setIsLoading(false);
       });
     };
@@ -43,17 +57,19 @@ export default function NotificationBell() {
     // Wait a bit for OneSignal to initialize
     const timer = setTimeout(checkSubscription, 1000);
     
-    // Also check if push is supported
-    if (!("Notification" in window)) {
-      setIsSupported(false);
+    // Fallback: stop loading after 3 seconds even if OneSignal doesn't respond
+    const fallbackTimer = setTimeout(() => {
       setIsLoading(false);
-    }
+    }, 3000);
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      clearTimeout(fallbackTimer);
+    };
   }, []);
 
   async function handleToggle() {
-    if (typeof window === "undefined") return;
+    if (typeof window === "undefined" || !isSupported) return;
     setIsLoading(true);
 
     const win = window as OneSignalWindow;
@@ -76,13 +92,16 @@ export default function NotificationBell() {
     });
   }
 
-  // Show bell even if not supported, just disable it
+  // Always render the button structure to avoid layout shift
+  // Use opacity for loading state during SSR
   return (
     <button
       onClick={handleToggle}
       disabled={isLoading || !isSupported}
-      className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${
-        !isSupported
+      className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all flex-shrink-0 ${
+        !mounted
+          ? "bg-card border border-card-border text-muted"
+          : !isSupported
           ? "bg-card border border-card-border text-muted/50 cursor-not-allowed"
           : isSubscribed
           ? "bg-accent/20 text-accent"
@@ -90,13 +109,13 @@ export default function NotificationBell() {
       }`}
       title={
         !isSupported
-          ? "Notifications not supported on this device"
+          ? "Notifications not supported"
           : isSubscribed
           ? "Notifications enabled"
           : "Enable notifications"
       }
     >
-      {isLoading ? (
+      {!mounted || isLoading ? (
         <Loader2 className="w-5 h-5 animate-spin" />
       ) : isSubscribed ? (
         <Bell className="w-5 h-5" />
