@@ -17,13 +17,21 @@ declare global {
           optIn: () => Promise<void>;
           optOut: () => Promise<void>;
         };
+        addTag: (key: string, value: string) => Promise<void>;
+        removeTag: (key: string) => Promise<void>;
+        addTags: (tags: Record<string, string>) => Promise<void>;
       };
     };
     OneSignalDeferred?: Array<(OneSignal: unknown) => void>;
   }
 }
 
-export default function NotificationBell() {
+type NotificationBellProps = {
+  businessId?: string;
+  businessSlug?: string;
+};
+
+export default function NotificationBell({ businessId, businessSlug }: NotificationBellProps) {
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSupported, setIsSupported] = useState(true);
@@ -68,11 +76,29 @@ export default function NotificationBell() {
 
     try {
       if (isSubscribed) {
+        // Unsubscribe
         await window.OneSignal.User.PushSubscription.optOut();
+        
+        // Remove business tag when unsubscribing
+        if (businessId) {
+          await window.OneSignal.User.removeTag("business_id");
+          await window.OneSignal.User.removeTag("business_slug");
+        }
+        
         setIsSubscribed(false);
       } else {
+        // Subscribe
         await window.OneSignal.Notifications.requestPermission();
         await window.OneSignal.User.PushSubscription.optIn();
+        
+        // Tag user with business ID so we can filter notifications
+        if (businessId || businessSlug) {
+          const tags: Record<string, string> = {};
+          if (businessId) tags.business_id = businessId;
+          if (businessSlug) tags.business_slug = businessSlug;
+          await window.OneSignal.User.addTags(tags);
+        }
+        
         setIsSubscribed(true);
       }
     } catch (err) {

@@ -104,7 +104,10 @@ export default function Home() {
               <p className="text-xs text-muted">Daily Workouts</p>
             </div>
           </div>
-          <NotificationBell />
+          <NotificationBell 
+            businessId="7a074731-74ef-4d30-a50e-400496d9642f" 
+            businessSlug="hayes-training" 
+          />
         </div>
       </header>
 

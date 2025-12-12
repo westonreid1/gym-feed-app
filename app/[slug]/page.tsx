@@ -248,7 +248,7 @@ export default function BusinessPage() {
               <p className="text-xs text-muted">{business.tagline || "Updates"}</p>
             </div>
           </div>
-          <NotificationBell />
+          <NotificationBell businessId={business.id} businessSlug={business.slug} />
         </div>
       </header>
 
