@@ -85,20 +85,19 @@ export default function NotificationBell() {
     setIsLoading(false);
   }
 
-  if (!isSupported) {
-    return null;
-  }
-
+  // Always show the bell - don't hide it
   return (
     <button
       onClick={handleToggle}
-      disabled={isLoading}
+      disabled={isLoading || !isSupported}
       className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${
-        isSubscribed
+        !isSupported
+          ? "bg-card border border-card-border text-muted/30"
+          : isSubscribed
           ? "bg-accent/20 text-accent"
           : "bg-card border border-card-border text-muted hover:text-foreground"
       }`}
-      title={isSubscribed ? "Notifications enabled" : "Enable notifications"}
+      title={!isSupported ? "Notifications not supported" : isSubscribed ? "Notifications enabled" : "Enable notifications"}
     >
       {isLoading ? (
         <Loader2 className="w-5 h-5 animate-spin" />
