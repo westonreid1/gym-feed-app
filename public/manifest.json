@@ -1,7 +1,7 @@
 {
-  "name": "Hayes Training Systems",
-  "short_name": "Hayes Gym",
-  "description": "Your daily workouts and gym updates",
+  "name": "StatusBoard",
+  "short_name": "StatusBoard",
+  "description": "Real-time status updates for your business",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0c0c0c",
