@@ -25,7 +25,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: business.name,
     description: business.tagline || `Updates from ${business.name}`,
-    manifest: `/${slug}/manifest.json`,
     themeColor: business.primary_color || "#22c55e",
     appleWebApp: {
       capable: true,
