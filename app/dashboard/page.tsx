@@ -75,7 +75,6 @@ export default function DashboardPage() {
     setUser(currentUser);
 
     // 2. CHECK 1: Are they the Owner?
-    // Use .maybeSingle() so it doesn't crash if they aren't found
     let { data: businessData } = await supabase
       .from("businesses")
       .select("*")
@@ -515,4 +514,319 @@ export default function DashboardPage() {
                         </button>
                         <button
                           onClick={cancelEditing}
-                          className="px-4 py-2 rounded-xl border border-card-border text-muted hover:text
+                          className="px-4 py-2 rounded-xl border border-card-border text-muted hover:text-foreground transition-colors"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ) : deleteConfirm === post.id ? (
+                    // Delete confirmation
+                    <div className="space-y-3">
+                      <p className="text-accent-red font-medium">
+                        Delete this post?
+                      </p>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => deletePost(post.id)}
+                          className="flex-1 bg-accent-red hover:bg-accent-red/90 text-white font-semibold py-2 px-4 rounded-xl transition-all"
+                        >
+                          Yes, Delete
+                        </button>
+                        <button
+                          onClick={() => setDeleteConfirm(null)}
+                          className="px-4 py-2 rounded-xl border border-card-border text-muted hover:text-foreground transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    // View mode
+                    <>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs text-muted">
+                          {formatDate(post.created_at)}
+                        </span>
+                        <div className="flex gap-1">
+                          <button
+                            onClick={() => startEditing(post)}
+                            className="p-2 rounded-lg text-muted hover:text-accent hover:bg-accent/10 transition-colors"
+                            title="Edit"
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => setDeleteConfirm(post.id)}
+                            className="p-2 rounded-lg text-muted hover:text-accent-red hover:bg-accent-red/10 transition-colors"
+                            title="Delete"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                      <p className="text-foreground whitespace-pre-wrap">
+                        {post.content}
+                      </p>
+                    </>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+      </main>
+    </div>
+  );
+}
+
+// ============================================================================
+// Onboarding Component for New Users
+// ============================================================================
+
+type OnboardingFlowProps = {
+  user: User | null;
+  onComplete: () => void;
+};
+
+function OnboardingFlow({ user, onComplete }: OnboardingFlowProps) {
+  const [step, setStep] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    name: "",
+    slug: "",
+    type: "gym",
+  });
+  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
+
+  const BUSINESS_TYPES = [
+    { value: "gym", label: "Gym / Fitness", icon: Dumbbell },
+    { value: "barber", label: "Barber Shop", icon: Scissors },
+    { value: "food_truck", label: "Food Truck", icon: Truck },
+    { value: "salon", label: "Salon / Spa", icon: Sparkles },
+    { value: "studio", label: "Studio", icon: Music },
+    { value: "other", label: "Other", icon: Store },
+  ];
+
+  function generateSlug(name: string) {
+    return name
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, "")
+      .replace(/\s+/g, "-")
+      .replace(/-+/g, "-")
+      .trim();
+  }
+
+  async function handleCreate() {
+    if (!user) return;
+    setLoading(true);
+    setError(null);
+
+    const supabase = createClient();
+
+    // Check if slug is available
+    const { data: existing } = await supabase
+      .from("businesses")
+      .select("id")
+      .eq("slug", formData.slug)
+      .single();
+
+    if (existing) {
+      setError("This URL is already taken. Please choose another.");
+      setLoading(false);
+      return;
+    }
+
+    // Create the business
+    const { data: business, error: businessError } = await supabase
+      .from("businesses")
+      .insert({
+        name: formData.name,
+        slug: formData.slug,
+        type: formData.type,
+        owner_id: user.id,
+      })
+      .select()
+      .single();
+
+    if (businessError || !business) {
+      setError("Failed to create business. Please try again.");
+      setLoading(false);
+      return;
+    }
+
+    // Create initial status record
+    await supabase.from("status").insert({
+      business_id: business.id,
+      is_open: false,
+      message: "Welcome! Update your status here.",
+    });
+
+    setLoading(false);
+    onComplete();
+  }
+
+  async function handleLogout() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/login");
+  }
+
+  return (
+    <div className="min-h-screen bg-background flex flex-col">
+      {/* Header */}
+      <header className="px-4 py-4 flex justify-end">
+        <button
+          onClick={handleLogout}
+          className="text-muted hover:text-foreground transition-colors text-sm"
+        >
+          Sign Out
+        </button>
+      </header>
+
+      <main className="flex-1 flex items-center justify-center px-4 pb-12">
+        <div className="w-full max-w-md">
+          {/* Progress */}
+          <div className="flex items-center justify-center gap-2 mb-8">
+            {[1, 2].map((s) => (
+              <div
+                key={s}
+                className={`w-3 h-3 rounded-full transition-colors ${
+                  s <= step ? "bg-accent" : "bg-card-border"
+                }`}
+              />
+            ))}
+          </div>
+
+          {step === 1 && (
+            <div className="space-y-6">
+              <div className="text-center">
+                <div className="w-16 h-16 rounded-2xl bg-accent/20 flex items-center justify-center mx-auto mb-4">
+                  <Plus className="w-8 h-8 text-accent" />
+                </div>
+                <h1 className="text-2xl font-bold mb-2">Create Your Board</h1>
+                <p className="text-muted">
+                  Let&apos;s set up your status board in 30 seconds.
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-muted mb-2">
+                    Business Name
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) => {
+                      const name = e.target.value;
+                      setFormData({
+                        ...formData,
+                        name,
+                        slug: generateSlug(name),
+                      });
+                    }}
+                    placeholder="e.g., Joe's Barber Shop"
+                    className="w-full bg-card border border-card-border rounded-xl py-4 px-4 text-foreground placeholder:text-muted/50 focus:outline-none focus:border-accent transition-colors"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-muted mb-2">
+                    Your URL
+                  </label>
+                  <div className="flex items-center bg-card border border-card-border rounded-xl overflow-hidden">
+                    <span className="px-4 text-muted text-sm">statusboard.app/</span>
+                    <input
+                      type="text"
+                      value={formData.slug}
+                      onChange={(e) =>
+                        setFormData({ ...formData, slug: generateSlug(e.target.value) })
+                      }
+                      placeholder="joes-barber"
+                      className="flex-1 bg-transparent py-4 pr-4 text-foreground placeholder:text-muted/50 focus:outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setStep(2)}
+                disabled={!formData.name.trim() || !formData.slug.trim()}
+                className="w-full bg-accent hover:bg-accent/90 disabled:bg-accent/30 disabled:cursor-not-allowed text-background font-semibold py-4 px-6 rounded-xl transition-all active:scale-[0.98]"
+              >
+                Continue
+              </button>
+            </div>
+          )}
+
+          {step === 2 && (
+            <div className="space-y-6">
+              <div className="text-center">
+                <h1 className="text-2xl font-bold mb-2">What type of business?</h1>
+                <p className="text-muted">This helps us customize your board.</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                {BUSINESS_TYPES.map((type) => (
+                  <button
+                    key={type.value}
+                    onClick={() => setFormData({ ...formData, type: type.value })}
+                    className={`flex flex-col items-center gap-2 p-4 rounded-xl border transition-all ${
+                      formData.type === type.value
+                        ? "bg-accent/10 border-accent"
+                        : "bg-card border-card-border hover:border-accent/30"
+                    }`}
+                  >
+                    <type.icon
+                      className={`w-6 h-6 ${
+                        formData.type === type.value ? "text-accent" : "text-muted"
+                      }`}
+                    />
+                    <span
+                      className={`text-sm font-medium ${
+                        formData.type === type.value ? "text-foreground" : "text-muted"
+                      }`}
+                    >
+                      {type.label}
+                    </span>
+                  </button>
+                ))}
+              </div>
+
+              {error && (
+                <div className="bg-accent-red/10 border border-accent-red/30 rounded-xl px-4 py-3 text-accent-red text-sm">
+                  {error}
+                </div>
+              )}
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setStep(1)}
+                  className="flex-1 bg-card border border-card-border hover:border-accent/30 text-foreground font-semibold py-4 px-6 rounded-xl transition-all"
+                >
+                  Back
+                </button>
+                <button
+                  onClick={handleCreate}
+                  disabled={loading}
+                  className="flex-1 bg-accent hover:bg-accent/90 disabled:bg-accent/50 text-background font-semibold py-4 px-6 rounded-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <span>Creating...</span>
+                    </>
+                  ) : (
+                    <span>Create Board</span>
+                  )}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </main>
+    </div>
+  );
+}
