@@ -27,6 +27,7 @@ import {
 import Link from "next/link";
 import type { Business, Status, Post } from "@/types/database";
 import { User } from "@supabase/supabase-js";
+import SubscriptionBanner from "@/app/components/SubscriptionBanner";
 
 // Icon mapping for different business types
 const BUSINESS_ICONS: Record<string, React.ElementType> = {
@@ -352,6 +353,9 @@ export default function DashboardPage() {
       </header>
 
       <main className="max-w-lg mx-auto px-4 py-6 space-y-6">
+        {/* Subscription Banner */}
+        {business && <SubscriptionBanner business={business} />}
+        
         {/* Status Control */}
         <section className="rounded-2xl bg-card border border-card-border p-6">
           <div className="flex items-center gap-3 mb-6">

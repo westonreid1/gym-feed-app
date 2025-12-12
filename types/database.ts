@@ -2,6 +2,8 @@
 // Database Types for Multi-Tenant Architecture
 // ============================================================================
 
+export type SubscriptionStatus = 'trialing' | 'active' | 'past_due' | 'canceled' | 'incomplete' | null;
+
 export type Business = {
   id: string;
   name: string;
@@ -15,6 +17,12 @@ export type Business = {
   external_link_text: string | null;
   created_at: string;
   updated_at: string;
+  // Stripe subscription fields
+  stripe_customer_id: string | null;
+  stripe_subscription_id: string | null;
+  subscription_status: SubscriptionStatus;
+  trial_ends_at: string | null;
+  subscription_ends_at: string | null;
 };
 
 export type Profile = {
