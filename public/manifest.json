@@ -1,8 +1,8 @@
 {
-  "name": "StatusBoard",
-  "short_name": "StatusBoard",
-  "description": "Real-time status updates for your business",
-  "start_url": "/",
+  "name": "Hayes Training Systems",
+  "short_name": "Hayes Training",
+  "description": "Daily Workouts",
+  "start_url": "/hayes-training",
   "display": "standalone",
   "background_color": "#0c0c0c",
   "theme_color": "#22c55e",
