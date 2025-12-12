@@ -1,210 +1,273 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { createClient } from "@/utils/supabase/client";
-import { Dumbbell, Bell, ExternalLink, Calendar } from "lucide-react";
+import Link from "next/link";
+import {
+  Dumbbell,
+  Scissors,
+  Truck,
+  Sparkles,
+  ArrowRight,
+  Zap,
+  Shield,
+  Bell,
+  BarChart3,
+  CheckCircle2,
+} from "lucide-react";
 
-type GymStatus = {
-  id: number;
-  is_open: boolean;
-  message: string;
-};
+const FEATURES = [
+  {
+    icon: Zap,
+    title: "Real-Time Updates",
+    description:
+      "Customers see status changes instantly. No refreshing needed.",
+  },
+  {
+    icon: Bell,
+    title: "Push Notifications",
+    description:
+      "Send instant alerts when you open, close, or have special announcements.",
+  },
+  {
+    icon: Shield,
+    title: "Simple & Secure",
+    description:
+      "Your data is yours. Industry-standard security with Supabase.",
+  },
+  {
+    icon: BarChart3,
+    title: "Easy Dashboard",
+    description:
+      "Manage everything from one clean interface. No tech skills needed.",
+  },
+];
 
-type Post = {
-  id: number;
-  content: string;
-  created_at: string;
-};
+const BUSINESS_TYPES = [
+  { icon: Dumbbell, name: "Gyms", color: "#22c55e" },
+  { icon: Scissors, name: "Barber Shops", color: "#3b82f6" },
+  { icon: Truck, name: "Food Trucks", color: "#f59e0b" },
+  { icon: Sparkles, name: "Salons", color: "#ec4899" },
+];
 
-export default function Home() {
-  const [status, setStatus] = useState<GymStatus | null>(null);
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const supabase = createClient();
-
-    async function fetchData() {
-      // Fetch gym status
-      const { data: statusData } = await supabase
-        .from("gym_status")
-        .select("*")
-        .single();
-
-      // Fetch posts (newest first)
-      const { data: postsData } = await supabase
-        .from("posts")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      setStatus(statusData);
-      setPosts(postsData || []);
-      setLoading(false);
-    }
-
-    fetchData();
-
-    // Subscribe to real-time updates
-    const statusChannel = supabase
-      .channel("gym_status_changes")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "gym_status" },
-        (payload) => {
-          setStatus(payload.new as GymStatus);
-        }
-      )
-      .subscribe();
-
-    const postsChannel = supabase
-      .channel("posts_changes")
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "posts" },
-        (payload) => {
-          setPosts((prev) => [payload.new as Post, ...prev]);
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(statusChannel);
-      supabase.removeChannel(postsChannel);
-    };
-  }, []);
-
-  function formatDate(dateString: string) {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffTime = now.getTime() - date.getTime();
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-
-    if (diffDays === 0) {
-      return "Today";
-    } else if (diffDays === 1) {
-      return "Yesterday";
-    } else if (diffDays < 7) {
-      return date.toLocaleDateString("en-US", { weekday: "long" });
-    } else {
-      return date.toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-      });
-    }
-  }
-
+export default function LandingPage() {
   return (
     <div className="min-h-screen bg-background">
-      {/* Sticky Header */}
-      <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-xl border-b border-card-border">
-        <div className="max-w-lg mx-auto px-4 py-4 flex items-center justify-between">
+      {/* Navigation */}
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-card-border">
+        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-accent/20 flex items-center justify-center">
-              <Dumbbell className="w-5 h-5 text-accent" />
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-accent to-accent/60 flex items-center justify-center">
+              <Zap className="w-5 h-5 text-background" />
             </div>
-            <div>
-              <h1 className="text-lg font-bold tracking-tight">Hayes Training</h1>
-              <p className="text-xs text-muted">Daily Workouts</p>
-            </div>
+            <span className="text-xl font-bold tracking-tight">StatusBoard</span>
           </div>
-          <Bell className="w-5 h-5 text-muted" />
+          <div className="flex items-center gap-4">
+            <Link
+              href="/login"
+              className="text-muted hover:text-foreground transition-colors font-medium"
+            >
+              Sign In
+            </Link>
+            <Link
+              href="/login"
+              className="bg-accent hover:bg-accent/90 text-background font-semibold py-2.5 px-5 rounded-xl transition-all active:scale-[0.98]"
+            >
+              Get Started
+            </Link>
+          </div>
         </div>
-      </header>
+      </nav>
 
-      <main className="max-w-lg mx-auto px-4 pb-24">
-        {/* Status Banner */}
-        {loading ? (
-          <div className="mt-6 rounded-2xl bg-card border border-card-border p-6 animate-pulse">
-            <div className="h-6 bg-card-border rounded w-1/3 mb-2"></div>
-            <div className="h-4 bg-card-border rounded w-2/3"></div>
+      {/* Hero Section */}
+      <section className="pt-32 pb-20 px-6">
+        <div className="max-w-4xl mx-auto text-center">
+          <div className="inline-flex items-center gap-2 bg-accent/10 text-accent px-4 py-2 rounded-full text-sm font-medium mb-8">
+            <Zap className="w-4 h-4" />
+            <span>Real-time status updates for your business</span>
           </div>
-        ) : (
-          <div
-            className={`mt-6 rounded-2xl p-6 status-pulse ${
-              status?.is_open
-                ? "bg-gradient-to-br from-accent/20 to-accent/5 border border-accent/30"
-                : "bg-gradient-to-br from-accent-red/20 to-accent-red/5 border border-accent-red/30"
-            }`}
-          >
-            <div className="flex items-center gap-3 mb-2">
+          
+          <h1 className="text-5xl md:text-7xl font-bold tracking-tight mb-6 leading-[1.1]">
+            Let customers know{" "}
+            <span className="bg-gradient-to-r from-accent to-emerald-400 bg-clip-text text-transparent">
+              you&apos;re open
+            </span>
+          </h1>
+          
+          <p className="text-xl text-muted max-w-2xl mx-auto mb-10 leading-relaxed">
+            A dead-simple status board for gyms, barber shops, food trucks, and
+            any business that needs to broadcast their availability in real-time.
+          </p>
+
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <Link
+              href="/login"
+              className="w-full sm:w-auto bg-accent hover:bg-accent/90 text-background font-semibold py-4 px-8 rounded-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2 text-lg"
+            >
+              <span>Create Your Board</span>
+              <ArrowRight className="w-5 h-5" />
+            </Link>
+            <Link
+              href="/hayes-training"
+              className="w-full sm:w-auto bg-card hover:bg-card/80 border border-card-border text-foreground font-semibold py-4 px-8 rounded-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2 text-lg"
+            >
+              <span>See Demo</span>
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Business Types */}
+      <section className="py-16 px-6 border-t border-card-border">
+        <div className="max-w-4xl mx-auto">
+          <p className="text-center text-muted text-sm uppercase tracking-wider mb-8">
+            Perfect for
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-6">
+            {BUSINESS_TYPES.map((type) => (
               <div
-                className={`w-3 h-3 rounded-full ${
-                  status?.is_open ? "bg-accent" : "bg-accent-red"
-                }`}
-              ></div>
-              <span
-                className={`text-xl font-bold ${
-                  status?.is_open ? "text-accent" : "text-accent-red"
-                }`}
+                key={type.name}
+                className="flex items-center gap-3 bg-card border border-card-border rounded-xl px-5 py-3"
               >
-                {status?.is_open ? "Gym Open" : "Gym Closed"}
-              </span>
+                <type.icon className="w-5 h-5" style={{ color: type.color }} />
+                <span className="font-medium">{type.name}</span>
+              </div>
+            ))}
+            <div className="flex items-center gap-3 bg-card border border-card-border rounded-xl px-5 py-3 text-muted">
+              <span className="font-medium">+ More</span>
             </div>
-            <p className="text-foreground/80 text-lg">
-              {status?.message || "No status message"}
+          </div>
+        </div>
+      </section>
+
+      {/* Features */}
+      <section className="py-20 px-6 bg-card/50">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              Everything you need, nothing you don&apos;t
+            </h2>
+            <p className="text-muted text-lg max-w-2xl mx-auto">
+              Built for small business owners who want to keep customers informed
+              without the complexity.
             </p>
           </div>
-        )}
 
-        {/* Sign Up Button */}
-        <a
-          href="https://hayestrainingsystems.com/subscribe/"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-6 w-full flex items-center justify-center gap-2 bg-accent hover:bg-accent/90 text-background font-semibold py-4 px-6 rounded-2xl transition-all active:scale-[0.98]"
-        >
-          <span className="text-lg">Sign Up</span>
-          <ExternalLink className="w-5 h-5" />
-        </a>
-
-        {/* Posts Feed */}
-        <section className="mt-8">
-          <h2 className="text-sm font-semibold text-muted uppercase tracking-wider mb-4">
-            Workout Feed
-          </h2>
-
-          {loading ? (
-            <div className="space-y-4">
-              {[1, 2, 3].map((i) => (
-                <div
-                  key={i}
-                  className="rounded-2xl bg-card border border-card-border p-5 animate-pulse"
-                >
-                  <div className="h-4 bg-card-border rounded w-1/4 mb-4"></div>
-                  <div className="space-y-2">
-                    <div className="h-4 bg-card-border rounded w-full"></div>
-                    <div className="h-4 bg-card-border rounded w-3/4"></div>
-                  </div>
+          <div className="grid md:grid-cols-2 gap-6">
+            {FEATURES.map((feature) => (
+              <div
+                key={feature.title}
+                className="bg-card border border-card-border rounded-2xl p-8 hover:border-accent/30 transition-colors"
+              >
+                <div className="w-12 h-12 rounded-xl bg-accent/10 flex items-center justify-center mb-5">
+                  <feature.icon className="w-6 h-6 text-accent" />
                 </div>
+                <h3 className="text-xl font-semibold mb-3">{feature.title}</h3>
+                <p className="text-muted leading-relaxed">{feature.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* How It Works */}
+      <section className="py-20 px-6">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              Up and running in 2 minutes
+            </h2>
+          </div>
+
+          <div className="space-y-8">
+            {[
+              {
+                step: "1",
+                title: "Create your account",
+                description:
+                  "Sign up with your email. No credit card required to start.",
+              },
+              {
+                step: "2",
+                title: "Customize your board",
+                description:
+                  "Set your business name, choose your URL slug, and pick your colors.",
+              },
+              {
+                step: "3",
+                title: "Share with customers",
+                description:
+                  "Give customers your unique link. They'll always know when you're open.",
+              },
+            ].map((item) => (
+              <div
+                key={item.step}
+                className="flex gap-6 items-start"
+              >
+                <div className="w-12 h-12 rounded-full bg-accent text-background font-bold text-xl flex items-center justify-center flex-shrink-0">
+                  {item.step}
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold mb-2">{item.title}</h3>
+                  <p className="text-muted leading-relaxed">{item.description}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Pricing Preview */}
+      <section className="py-20 px-6 bg-card/50">
+        <div className="max-w-xl mx-auto text-center">
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">
+            Simple pricing
+          </h2>
+          <p className="text-muted text-lg mb-10">
+            Start free. Upgrade when you&apos;re ready.
+          </p>
+
+          <div className="bg-card border border-card-border rounded-2xl p-8">
+            <div className="text-5xl font-bold mb-2">Free</div>
+            <p className="text-muted mb-8">to get started</p>
+            
+            <ul className="space-y-4 text-left mb-8">
+              {[
+                "Unlimited status updates",
+                "Real-time updates",
+                "Custom URL slug",
+                "Mobile-friendly board",
+              ].map((item) => (
+                <li key={item} className="flex items-center gap-3">
+                  <CheckCircle2 className="w-5 h-5 text-accent flex-shrink-0" />
+                  <span>{item}</span>
+                </li>
               ))}
+            </ul>
+
+            <Link
+              href="/login"
+              className="w-full bg-accent hover:bg-accent/90 text-background font-semibold py-4 px-6 rounded-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+            >
+              <span>Get Started Free</span>
+              <ArrowRight className="w-5 h-5" />
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="py-12 px-6 border-t border-card-border">
+        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-accent/20 flex items-center justify-center">
+              <Zap className="w-4 h-4 text-accent" />
             </div>
-          ) : posts.length === 0 ? (
-            <div className="rounded-2xl bg-card border border-card-border p-8 text-center">
-              <Dumbbell className="w-12 h-12 text-muted mx-auto mb-4" />
-              <p className="text-muted text-lg">No workouts posted yet</p>
-              <p className="text-muted/60 text-sm mt-1">Check back soon!</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {posts.map((post, index) => (
-                <article
-                  key={post.id}
-                  className="card-animate rounded-2xl bg-card border border-card-border p-5 hover:border-card-border/80 transition-colors"
-                  style={{ animationDelay: `${index * 0.1}s` }}
-                >
-                  <div className="flex items-center gap-2 text-muted text-sm mb-3">
-                    <Calendar className="w-4 h-4" />
-                    <time>{formatDate(post.created_at)}</time>
-                  </div>
-                  <p className="text-foreground text-lg leading-relaxed whitespace-pre-wrap">
-                    {post.content}
-                  </p>
-                </article>
-              ))}
-            </div>
-          )}
-        </section>
-      </main>
+            <span className="font-semibold">StatusBoard</span>
+          </div>
+          <p className="text-muted text-sm">
+            © {new Date().getFullYear()} StatusBoard. All rights reserved.
+          </p>
+        </div>
+      </footer>
     </div>
   );
 }

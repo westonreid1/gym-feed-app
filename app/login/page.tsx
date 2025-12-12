@@ -29,7 +29,7 @@ export default function LoginPage() {
       setError(error.message);
       setLoading(false);
     } else {
-      router.push("/admin");
+      router.push("/dashboard");
       router.refresh();
     }
   }
@@ -54,8 +54,8 @@ export default function LoginPage() {
             <div className="w-16 h-16 rounded-2xl bg-accent/20 flex items-center justify-center mx-auto mb-4">
               <Dumbbell className="w-8 h-8 text-accent" />
             </div>
-            <h1 className="text-2xl font-bold">Admin Login</h1>
-            <p className="text-muted mt-1">Sign in to manage the gym feed</p>
+            <h1 className="text-2xl font-bold">Welcome Back</h1>
+            <p className="text-muted mt-1">Sign in to manage your board</p>
           </div>
 
           {/* Form */}
@@ -122,4 +122,7 @@ export default function LoginPage() {
     </div>
   );
 }
+
+
+
 
