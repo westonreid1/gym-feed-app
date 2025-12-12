@@ -294,9 +294,14 @@ export default function DashboardPage() {
     );
   }
 
-  // Onboarding for new users without a business
+  // Redirect to onboarding for new users without a business
   if (showOnboarding) {
-    return <OnboardingFlow user={user} onComplete={fetchData} />;
+    router.push("/onboarding");
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-accent animate-spin" />
+      </div>
+    );
   }
 
   const BusinessIcon = business ? getBusinessIcon(business.type) : Store;
