@@ -15,13 +15,13 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Hayes Training Systems",
-  description: "Your daily workouts and gym updates",
+  title: "StatusBoard - Real-time Status for Your Business",
+  description: "Let customers know you're open with real-time status updates",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Hayes Gym",
+    title: "StatusBoard",
   },
 };
 

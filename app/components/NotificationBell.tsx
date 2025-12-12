@@ -76,20 +76,25 @@ export default function NotificationBell() {
     });
   }
 
-  if (!isSupported) {
-    return null;
-  }
-
+  // Show bell even if not supported, just disable it
   return (
     <button
       onClick={handleToggle}
-      disabled={isLoading}
+      disabled={isLoading || !isSupported}
       className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${
-        isSubscribed
+        !isSupported
+          ? "bg-card border border-card-border text-muted/50 cursor-not-allowed"
+          : isSubscribed
           ? "bg-accent/20 text-accent"
           : "bg-card border border-card-border text-muted hover:text-foreground"
       }`}
-      title={isSubscribed ? "Notifications enabled" : "Enable notifications"}
+      title={
+        !isSupported
+          ? "Notifications not supported on this device"
+          : isSubscribed
+          ? "Notifications enabled"
+          : "Enable notifications"
+      }
     >
       {isLoading ? (
         <Loader2 className="w-5 h-5 animate-spin" />
