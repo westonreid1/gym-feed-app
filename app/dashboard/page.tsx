@@ -681,7 +681,13 @@ function OnboardingFlow({ user, onComplete }: OnboardingFlowProps) {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
-      <header className="px-4 py-4 flex justify-end">
+      <header className="px-4 py-4 flex justify-end gap-4">
+        <a
+          href="/login"
+          className="text-muted hover:text-foreground transition-colors text-sm"
+        >
+          Sign in with different account
+        </a>
         <button
           onClick={handleLogout}
           className="text-muted hover:text-foreground transition-colors text-sm"

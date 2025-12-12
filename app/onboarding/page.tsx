@@ -147,13 +147,21 @@ export default function OnboardingPage() {
             </div>
             <span className="text-xl font-bold">StatusBoard</span>
           </div>
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-2 text-muted hover:text-foreground transition-colors text-sm"
-          >
-            <LogOut className="w-4 h-4" />
-            <span>Sign out</span>
-          </button>
+          <div className="flex items-center gap-4">
+            <a
+              href="/login"
+              className="text-muted hover:text-foreground transition-colors text-sm"
+            >
+              Sign in
+            </a>
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-2 text-muted hover:text-foreground transition-colors text-sm"
+            >
+              <LogOut className="w-4 h-4" />
+              <span>Sign out</span>
+            </button>
+          </div>
         </div>
       </header>
 
