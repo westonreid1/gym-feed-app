@@ -17,6 +17,7 @@ import {
   Check,
   Loader2,
   Zap,
+  LogOut,
 } from "lucide-react";
 import { BUSINESS_PRESETS, getBusinessPreset } from "@/types/database";
 
@@ -129,15 +130,30 @@ export default function OnboardingPage() {
     router.push("/dashboard");
   }
 
+  async function handleLogout() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/login");
+  }
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b border-card-border">
-        <div className="max-w-2xl mx-auto px-6 py-4 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-accent to-accent/60 flex items-center justify-center">
-            <Zap className="w-5 h-5 text-background" />
+        <div className="max-w-2xl mx-auto px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-accent to-accent/60 flex items-center justify-center">
+              <Zap className="w-5 h-5 text-background" />
+            </div>
+            <span className="text-xl font-bold">StatusBoard</span>
           </div>
-          <span className="text-xl font-bold">StatusBoard</span>
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-2 text-muted hover:text-foreground transition-colors text-sm"
+          >
+            <LogOut className="w-4 h-4" />
+            <span>Sign out</span>
+          </button>
         </div>
       </header>
 
