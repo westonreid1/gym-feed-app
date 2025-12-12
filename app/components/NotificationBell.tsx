@@ -61,9 +61,15 @@ export default function NotificationBell() {
     if (typeof window === "undefined") return;
     setIsLoading(true);
 
+    // Timeout fallback - stop loading after 10 seconds
+    const timeout = setTimeout(() => {
+      setIsLoading(false);
+    }, 10000);
+
     const win = window as OneSignalWindow;
     win.OneSignalDeferred = win.OneSignalDeferred || [];
     win.OneSignalDeferred.push(async (os: unknown) => {
+      clearTimeout(timeout);
       const OneSignal = os as OneSignalType;
       try {
         if (isSubscribed) {
