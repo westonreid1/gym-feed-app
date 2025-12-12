@@ -3,23 +3,25 @@
 import { useState, useEffect } from "react";
 import { Bell, BellOff, Loader2 } from "lucide-react";
 
-interface OneSignalType {
-  Notifications: {
-    permission: boolean;
-    requestPermission: () => Promise<void>;
-  };
-  User: {
-    PushSubscription: {
-      optedIn: boolean;
-      optIn: () => Promise<void>;
-      optOut: () => Promise<void>;
+// Declare OneSignal on window
+declare global {
+  interface Window {
+    OneSignal?: {
+      Notifications: {
+        permission: boolean;
+        requestPermission: () => Promise<void>;
+      };
+      User: {
+        PushSubscription: {
+          optedIn: boolean;
+          optIn: () => Promise<void>;
+          optOut: () => Promise<void>;
+        };
+      };
     };
-  };
+    OneSignalDeferred?: Array<(OneSignal: unknown) => void>;
+  }
 }
-
-type OneSignalWindow = Window & {
-  OneSignalDeferred?: Array<(OneSignal: unknown) => void>;
-};
 
 export default function NotificationBell() {
   const [isSubscribed, setIsSubscribed] = useState(false);
@@ -27,53 +29,60 @@ export default function NotificationBell() {
   const [isSupported, setIsSupported] = useState(true);
 
   useEffect(() => {
-    // Check if OneSignal is loaded and get subscription status
-    const checkSubscription = () => {
-      if (typeof window === "undefined") return;
-      
-      const win = window as OneSignalWindow;
-      win.OneSignalDeferred = win.OneSignalDeferred || [];
-      win.OneSignalDeferred.push((os: unknown) => {
-        const OneSignal = os as OneSignalType;
-        setIsSubscribed(OneSignal.User.PushSubscription.optedIn);
-        setIsLoading(false);
-      });
-    };
-
-    // Wait a bit for OneSignal to initialize
-    const timer = setTimeout(checkSubscription, 1000);
-    
-    // Also check if push is supported
+    // Check if push is supported
     if (!("Notification" in window)) {
       setIsSupported(false);
       setIsLoading(false);
+      return;
     }
 
-    return () => clearTimeout(timer);
+    // Wait for OneSignal to be ready, then check subscription
+    const checkSubscription = () => {
+      if (window.OneSignal?.User?.PushSubscription) {
+        setIsSubscribed(window.OneSignal.User.PushSubscription.optedIn);
+        setIsLoading(false);
+      } else {
+        // OneSignal not ready yet, try again
+        setTimeout(checkSubscription, 500);
+      }
+    };
+
+    // Start checking after a delay to let OneSignal initialize
+    const timer = setTimeout(checkSubscription, 1500);
+
+    // Fallback: stop loading after 5 seconds
+    const fallback = setTimeout(() => {
+      setIsLoading(false);
+    }, 5000);
+
+    return () => {
+      clearTimeout(timer);
+      clearTimeout(fallback);
+    };
   }, []);
 
   async function handleToggle() {
-    if (typeof window === "undefined") return;
+    if (!window.OneSignal) {
+      console.error("OneSignal not loaded");
+      return;
+    }
+
     setIsLoading(true);
 
-    const win = window as OneSignalWindow;
-    win.OneSignalDeferred = win.OneSignalDeferred || [];
-    win.OneSignalDeferred.push(async (os: unknown) => {
-      const OneSignal = os as OneSignalType;
-      try {
-        if (isSubscribed) {
-          await OneSignal.User.PushSubscription.optOut();
-          setIsSubscribed(false);
-        } else {
-          await OneSignal.Notifications.requestPermission();
-          await OneSignal.User.PushSubscription.optIn();
-          setIsSubscribed(true);
-        }
-      } catch (err) {
-        console.error("Notification toggle failed:", err);
+    try {
+      if (isSubscribed) {
+        await window.OneSignal.User.PushSubscription.optOut();
+        setIsSubscribed(false);
+      } else {
+        await window.OneSignal.Notifications.requestPermission();
+        await window.OneSignal.User.PushSubscription.optIn();
+        setIsSubscribed(true);
       }
-      setIsLoading(false);
-    });
+    } catch (err) {
+      console.error("Notification toggle failed:", err);
+    }
+
+    setIsLoading(false);
   }
 
   if (!isSupported) {
