@@ -255,14 +255,12 @@ export default function SettingsPage() {
               <button
                 key={color}
                 onClick={() => setFormData({ ...formData, primary_color: color })}
-                className={`w-10 h-10 rounded-xl transition-all ${
-                  formData.primary_color === color
-                    ? "ring-2 ring-offset-2 ring-offset-card"
-                    : ""
-                }`}
+                className="w-10 h-10 rounded-xl transition-all"
                 style={{
                   backgroundColor: color,
-                  ringColor: color,
+                  boxShadow: formData.primary_color === color 
+                    ? `0 0 0 2px var(--card), 0 0 0 4px ${color}` 
+                    : "none",
                 }}
               />
             ))}
