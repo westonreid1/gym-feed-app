@@ -59,14 +59,24 @@ export async function POST(request: Request) {
       url: process.env.NEXT_PUBLIC_SITE_URL || "/",
     };
 
-    // Multi-tenant: Filter by business_id tag if provided
-    if (businessId) {
-      // Use filters to only send to users tagged with this business_id
+    // BACKWARDS COMPATIBLE: For Hayes Training (first business), also send to legacy users
+    // Legacy users = subscribers who don't have any business_id tag (from before multi-tenant)
+    const HAYES_TRAINING_ID = "7a074731-74ef-4d30-a50e-400496d9642f";
+    
+    if (businessId === HAYES_TRAINING_ID) {
+      // Send to: users tagged with this business_id OR users with no business_id tag (legacy)
+      notificationPayload.filters = [
+        { field: "tag", key: "business_id", relation: "=", value: businessId },
+        { operator: "OR" },
+        { field: "tag", key: "business_id", relation: "not_exists" }
+      ];
+    } else if (businessId) {
+      // New businesses: only send to users tagged with this business_id
       notificationPayload.filters = [
         { field: "tag", key: "business_id", relation: "=", value: businessId }
       ];
     } else {
-      // Fallback for legacy: send to all subscribers
+      // No businessId provided: legacy fallback to all
       notificationPayload.included_segments = ["Total Subscriptions"];
     }
 
