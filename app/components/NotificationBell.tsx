@@ -29,17 +29,11 @@ export default function NotificationBell() {
   const [isSupported, setIsSupported] = useState(true);
 
   useEffect(() => {
-    // Check if push is supported
-    if (!("Notification" in window)) {
-      setIsSupported(false);
-      setIsLoading(false);
-      return;
-    }
-
     // Wait for OneSignal to be ready, then check subscription
     const checkSubscription = () => {
       if (window.OneSignal?.User?.PushSubscription) {
         setIsSubscribed(window.OneSignal.User.PushSubscription.optedIn);
+        setIsSupported(true);
         setIsLoading(false);
       } else {
         // OneSignal not ready yet, try again
@@ -50,8 +44,11 @@ export default function NotificationBell() {
     // Start checking after a delay to let OneSignal initialize
     const timer = setTimeout(checkSubscription, 1500);
 
-    // Fallback: stop loading after 5 seconds
+    // Fallback: stop loading after 5 seconds, mark unsupported if OneSignal didn't load
     const fallback = setTimeout(() => {
+      if (!window.OneSignal) {
+        setIsSupported(false);
+      }
       setIsLoading(false);
     }, 5000);
 
