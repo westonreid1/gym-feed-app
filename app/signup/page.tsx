@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { createClient } from "@/utils/supabase/client";
-import { Zap, Mail, ArrowLeft, Loader2, CheckCircle2 } from "lucide-react";
+import { Zap, Mail, Loader2, ArrowLeft, CheckCircle2, ArrowRight } from "lucide-react";
 import Link from "next/link";
 
 export default function SignupPage() {
@@ -18,10 +18,11 @@ export default function SignupPage() {
 
     const supabase = createClient();
 
-    // Send magic link - after clicking, user will be redirected to /onboarding
+    // Send magic link
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
+        // After clicking the link, redirect to onboarding
         emailRedirectTo: `${window.location.origin}/onboarding`,
       },
     });
@@ -50,27 +51,28 @@ export default function SignupPage() {
         </header>
 
         <main className="flex-1 flex items-center justify-center px-6 pb-12">
-          <div className="w-full max-w-md text-center">
+          <div className="w-full max-w-sm text-center">
             <div className="w-20 h-20 rounded-2xl bg-accent/20 flex items-center justify-center mx-auto mb-6">
               <CheckCircle2 className="w-10 h-10 text-accent" />
             </div>
             <h1 className="text-2xl font-bold mb-3">Check your email!</h1>
-            <p className="text-muted text-lg mb-2">
+            <p className="text-muted mb-2">
               We sent a magic link to:
             </p>
             <p className="text-foreground font-medium text-lg mb-6">
               {email}
             </p>
-            <p className="text-muted">
-              Click the link in the email to sign in and set up your business.
+            <p className="text-muted text-sm">
+              Click the link in the email to create your account and set up your business.
             </p>
-            
-            <div className="mt-8 pt-8 border-t border-card-border">
-              <p className="text-sm text-muted mb-4">
-                Didn't receive the email?
-              </p>
+
+            <div className="mt-8 pt-6 border-t border-card-border">
+              <p className="text-muted text-sm mb-3">Didn't receive it?</p>
               <button
-                onClick={() => setSent(false)}
+                onClick={() => {
+                  setSent(false);
+                  setEmail("");
+                }}
                 className="text-accent hover:text-accent/80 font-medium transition-colors"
               >
                 Try again with a different email
@@ -85,7 +87,7 @@ export default function SignupPage() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
-      <header className="px-6 py-4 flex items-center justify-between">
+      <header className="px-6 py-4">
         <Link
           href="/home"
           className="inline-flex items-center gap-2 text-muted hover:text-foreground transition-colors"
@@ -93,25 +95,17 @@ export default function SignupPage() {
           <ArrowLeft className="w-5 h-5" />
           <span>Back</span>
         </Link>
-        <Link
-          href="/login"
-          className="text-muted hover:text-foreground transition-colors"
-        >
-          Already have an account? <span className="text-accent">Sign in</span>
-        </Link>
       </header>
 
       <main className="flex-1 flex items-center justify-center px-6 pb-12">
-        <div className="w-full max-w-md">
+        <div className="w-full max-w-sm">
           {/* Logo */}
           <div className="text-center mb-8">
             <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-accent to-accent/60 flex items-center justify-center mx-auto mb-4">
               <Zap className="w-8 h-8 text-background" />
             </div>
             <h1 className="text-2xl font-bold">Create your StatusBoard</h1>
-            <p className="text-muted mt-2">
-              Enter your email to get started. No password needed!
-            </p>
+            <p className="text-muted mt-2">Enter your email to get started. No password needed!</p>
           </div>
 
           {/* Form */}
@@ -148,42 +142,42 @@ export default function SignupPage() {
               {loading ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  <span>Sending link...</span>
+                  <span>Sending...</span>
                 </>
               ) : (
-                <span>Send me a magic link</span>
+                <>
+                  <span>Get Started</span>
+                  <ArrowRight className="w-5 h-5" />
+                </>
               )}
             </button>
-
-            <p className="text-center text-sm text-muted">
-              We'll send you a link to sign in instantly. No password required.
-            </p>
           </form>
 
-          {/* Features preview */}
-          <div className="mt-12 pt-8 border-t border-card-border">
-            <p className="text-sm text-muted text-center mb-4">
-              What you'll get:
+          {/* Already have account */}
+          <div className="mt-8 pt-6 border-t border-card-border text-center">
+            <p className="text-muted text-sm">
+              Already have an account?{" "}
+              <Link href="/login" className="text-accent hover:text-accent/80 font-medium transition-colors">
+                Sign in
+              </Link>
             </p>
-            <ul className="space-y-3">
-              {[
-                "Real-time status board for your business",
-                "Push notifications to your customers",
-                "Custom URL (statusboard.app/your-business)",
-                "Mobile-friendly dashboard",
-              ].map((feature) => (
-                <li key={feature} className="flex items-center gap-3 text-sm">
-                  <div className="w-5 h-5 rounded-full bg-accent/20 flex items-center justify-center flex-shrink-0">
-                    <CheckCircle2 className="w-3 h-3 text-accent" />
-                  </div>
-                  <span className="text-muted">{feature}</span>
-                </li>
-              ))}
-            </ul>
+          </div>
+
+          {/* Benefits */}
+          <div className="mt-8 space-y-3">
+            {[
+              "Set up in under 2 minutes",
+              "No credit card required",
+              "Free to start",
+            ].map((benefit) => (
+              <div key={benefit} className="flex items-center gap-3 text-sm text-muted">
+                <CheckCircle2 className="w-4 h-4 text-accent flex-shrink-0" />
+                <span>{benefit}</span>
+              </div>
+            ))}
           </div>
         </div>
       </main>
     </div>
   );
 }
-
