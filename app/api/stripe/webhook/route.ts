@@ -119,9 +119,10 @@ export async function POST(request: Request) {
         break;
       }
 
-      // 4. Payment Failed (Card Declined)
+// 4. Payment Failed (Card Declined)
       case 'invoice.payment_failed': {
-        const invoice = event.data.object as Stripe.Invoice;
+        // Cast to 'any' to fix the "Property subscription does not exist" error
+        const invoice = event.data.object as any;
         const subscriptionId = invoice.subscription as string;
 
         if (subscriptionId) {
@@ -134,7 +135,6 @@ export async function POST(request: Request) {
         }
         break;
       }
-    }
 
     return NextResponse.json({ received: true });
   } catch (error) {
