@@ -135,6 +135,7 @@ export async function POST(request: Request) {
         }
         break;
       }
+    }
 
     return NextResponse.json({ received: true });
   } catch (error) {
