@@ -206,3 +206,4 @@ export default function SubscriptionBanner({ business }: SubscriptionBannerProps
   return null;
 }
 
+

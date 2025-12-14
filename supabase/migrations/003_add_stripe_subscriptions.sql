@@ -22,3 +22,4 @@ ON businesses(stripe_customer_id);
 CREATE INDEX IF NOT EXISTS idx_businesses_subscription_status 
 ON businesses(subscription_status);
 
+
