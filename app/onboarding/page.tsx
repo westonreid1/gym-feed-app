@@ -18,6 +18,7 @@ import {
   Loader2,
   Zap,
   LogOut,
+  Mail,
 } from "lucide-react";
 import { BUSINESS_PRESETS, getBusinessPreset } from "@/types/database";
 
@@ -37,6 +38,7 @@ export default function OnboardingPage() {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [emailSent, setEmailSent] = useState(false);
   const router = useRouter();
 
   // Form data
@@ -45,6 +47,7 @@ export default function OnboardingPage() {
   const [slug, setSlug] = useState("");
   const [tagline, setTagline] = useState("");
   const [primaryColor, setPrimaryColor] = useState("#22c55e");
+  const [email, setEmail] = useState("");
 
   // Get preset for selected type
   const preset = businessType ? getBusinessPreset(businessType) : null;
@@ -70,70 +73,116 @@ export default function OnboardingPage() {
     setSlug(generateSlug(name));
   }
 
-  async function handleCreate() {
+  async function handleSendMagicLink() {
     setLoading(true);
     setError(null);
 
-    const supabase = createClient();
+    try {
+      const supabase = createClient();
 
-    // Get current user
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      router.push("/login");
-      return;
-    }
+      // Store onboarding data in localStorage to retrieve after auth
+      const onboardingData = {
+        businessType,
+        businessName,
+        slug,
+        tagline,
+        primaryColor,
+        email,
+      };
+      localStorage.setItem('onboarding_data', JSON.stringify(onboardingData));
 
-    // Check if slug is available
-    const { data: existing } = await supabase
-      .from("businesses")
-      .select("id")
-      .eq("slug", slug)
-      .single();
+      // Check if slug is available before sending email
+      const { data: existing } = await supabase
+        .from("businesses")
+        .select("id")
+        .eq("slug", slug)
+        .single();
 
-    if (existing) {
-      setError("This URL is already taken. Please choose another.");
+      if (existing) {
+        setError("This URL is already taken. Please go back and choose another.");
+        setLoading(false);
+        return;
+      }
+
+      // Send magic link
+      const { error: authError } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/onboarding/setup`,
+        }
+      });
+
+      if (authError) throw authError;
+
+      setEmailSent(true);
+    } catch (err: any) {
+      setError(err.message || 'Failed to send magic link');
+    } finally {
       setLoading(false);
-      return;
     }
-
-    // Create the business
-    const { data: business, error: businessError } = await supabase
-      .from("businesses")
-      .insert({
-        name: businessName,
-        slug: slug,
-        type: businessType,
-        owner_id: user.id,
-        primary_color: primaryColor,
-        tagline: tagline,
-      })
-      .select()
-      .single();
-
-    if (businessError || !business) {
-      setError("Failed to create business. Please try again.");
-      setLoading(false);
-      return;
-    }
-
-    // Create initial status record
-    const preset = getBusinessPreset(businessType);
-    await supabase.from("status").insert({
-      business_id: business.id,
-      is_open: false,
-      message: preset.defaultStatusMessage,
-    });
-
-    setLoading(false);
-    
-    // Redirect to dashboard
-    router.push("/dashboard");
   }
 
   async function handleLogout() {
     const supabase = createClient();
     await supabase.auth.signOut();
     router.push("/login");
+  }
+
+  // Email sent confirmation screen
+  if (emailSent) {
+    return (
+      <div className="min-h-screen bg-background">
+        <header className="border-b border-card-border">
+          <div className="max-w-2xl mx-auto px-6 py-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-accent to-accent/60 flex items-center justify-center">
+                <Zap className="w-5 h-5 text-background" />
+              </div>
+              <span className="text-xl font-bold">StatusBoard</span>
+            </div>
+          </div>
+        </header>
+
+        <main className="max-w-2xl mx-auto px-6 py-12">
+          <div className="text-center space-y-6">
+            <div className="w-20 h-20 bg-accent/10 rounded-full flex items-center justify-center mx-auto">
+              <Mail className="w-10 h-10 text-accent" />
+            </div>
+            
+            <div>
+              <h1 className="text-3xl font-bold mb-3">Check your email</h1>
+              <p className="text-muted text-lg mb-2">
+                We sent a magic link to <strong className="text-foreground">{email}</strong>
+              </p>
+              <p className="text-muted">
+                Click the link in the email to complete your setup. The link expires in 1 hour.
+              </p>
+            </div>
+
+            <div className="bg-card border border-card-border rounded-xl p-6 text-left">
+              <p className="text-sm text-muted mb-2">💡 What happens next:</p>
+              <ol className="space-y-2 text-sm text-muted">
+                <li>1. Check your inbox for an email from StatusBoard</li>
+                <li>2. Click the "Sign in" link in the email</li>
+                <li>3. Your board will be automatically created</li>
+                <li>4. You'll be redirected to your dashboard</li>
+              </ol>
+            </div>
+
+            <button
+              onClick={() => {
+                setEmailSent(false);
+                setEmail('');
+                setStep(4);
+              }}
+              className="text-accent hover:text-accent/80 text-sm"
+            >
+              Use a different email
+            </button>
+          </div>
+        </main>
+      </div>
+    );
   }
 
   return (
@@ -168,7 +217,7 @@ export default function OnboardingPage() {
       <main className="max-w-2xl mx-auto px-6 py-12">
         {/* Progress */}
         <div className="flex items-center justify-center gap-3 mb-12">
-          {[1, 2, 3].map((s) => (
+          {[1, 2, 3, 4].map((s) => (
             <div
               key={s}
               className={`w-3 h-3 rounded-full transition-colors ${
@@ -390,12 +439,6 @@ export default function OnboardingPage() {
               </div>
             </div>
 
-            {error && (
-              <div className="bg-accent-red/10 border border-accent-red/30 rounded-xl px-4 py-3 text-accent-red">
-                {error}
-              </div>
-            )}
-
             <div className="flex gap-3">
               <button
                 onClick={() => setStep(2)}
@@ -405,20 +448,78 @@ export default function OnboardingPage() {
                 <span>Back</span>
               </button>
               <button
-                onClick={handleCreate}
-                disabled={loading}
+                onClick={() => setStep(4)}
+                className="flex-1 bg-accent hover:bg-accent/90 text-background font-semibold py-4 px-6 rounded-xl transition-all flex items-center justify-center gap-2"
+                style={{ backgroundColor: primaryColor }}
+              >
+                <span>Continue</span>
+                <ArrowRight className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Step 4: Create Account with Magic Link */}
+        {step === 4 && (
+          <div className="space-y-8">
+            <div className="text-center">
+              <h1 className="text-3xl font-bold mb-3">Create your account</h1>
+              <p className="text-muted text-lg">
+                We'll send you a magic link to sign in. No password needed!
+              </p>
+            </div>
+
+            <div className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-muted mb-2">
+                  Email address
+                </label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  className="w-full bg-card border border-card-border rounded-xl py-4 px-4 text-foreground text-lg placeholder:text-muted/50 focus:outline-none focus:border-accent transition-colors"
+                />
+              </div>
+
+              <div className="bg-card border border-card-border rounded-xl p-4">
+                <p className="text-sm text-muted">
+                  <strong className="text-foreground">📧 What you'll receive:</strong><br/>
+                  A secure link that expires in 1 hour. Click it to complete your setup and access your dashboard.
+                </p>
+              </div>
+            </div>
+
+            {error && (
+              <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-500">
+                {error}
+              </div>
+            )}
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setStep(3)}
+                className="flex-1 bg-card border border-card-border hover:border-accent/30 text-foreground font-semibold py-4 px-6 rounded-xl transition-all flex items-center justify-center gap-2"
+              >
+                <ArrowLeft className="w-5 h-5" />
+                <span>Back</span>
+              </button>
+              <button
+                onClick={handleSendMagicLink}
+                disabled={loading || !email.trim()}
                 className="flex-1 bg-accent hover:bg-accent/90 disabled:bg-accent/50 text-background font-semibold py-4 px-6 rounded-xl transition-all flex items-center justify-center gap-2"
                 style={{ backgroundColor: primaryColor }}
               >
                 {loading ? (
                   <>
                     <Loader2 className="w-5 h-5 animate-spin" />
-                    <span>Creating...</span>
+                    <span>Sending...</span>
                   </>
                 ) : (
                   <>
-                    <Check className="w-5 h-5" />
-                    <span>Create My Board</span>
+                    <Mail className="w-5 h-5" />
+                    <span>Send Magic Link</span>
                   </>
                 )}
               </button>
@@ -429,4 +530,3 @@ export default function OnboardingPage() {
     </div>
   );
 }
-
