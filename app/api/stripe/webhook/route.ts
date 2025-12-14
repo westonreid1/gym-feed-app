@@ -9,6 +9,16 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
+// Helper to safely get subscription dates
+function getSubscriptionDates(subscription: Stripe.Subscription) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sub = subscription as any;
+  return {
+    trialEnd: sub.trial_end ? new Date(sub.trial_end * 1000).toISOString() : null,
+    periodEnd: sub.current_period_end ? new Date(sub.current_period_end * 1000).toISOString() : null,
+  };
+}
+
 export async function POST(request: Request) {
   const body = await request.text();
   const signature = request.headers.get('stripe-signature');
@@ -37,23 +47,18 @@ export async function POST(request: Request) {
         const businessId = session.metadata?.business_id;
         
         if (businessId && session.subscription) {
-          // Get subscription details
-          const subscriptionResponse = await stripe.subscriptions.retrieve(
+          const subscription = await stripe.subscriptions.retrieve(
             session.subscription as string
           );
-          const subscription = subscriptionResponse as Stripe.Subscription;
+          const dates = getSubscriptionDates(subscription);
           
           await supabaseAdmin
             .from('businesses')
             .update({
               stripe_subscription_id: subscription.id,
               subscription_status: subscription.status,
-              trial_ends_at: subscription.trial_end 
-                ? new Date(subscription.trial_end * 1000).toISOString()
-                : null,
-              subscription_ends_at: subscription.current_period_end
-                ? new Date(subscription.current_period_end * 1000).toISOString()
-                : null,
+              trial_ends_at: dates.trialEnd,
+              subscription_ends_at: dates.periodEnd,
             })
             .eq('id', businessId);
         }
@@ -63,18 +68,15 @@ export async function POST(request: Request) {
       case 'customer.subscription.updated': {
         const subscription = event.data.object as Stripe.Subscription;
         const businessId = subscription.metadata?.business_id;
+        const dates = getSubscriptionDates(subscription);
         
         if (businessId) {
           await supabaseAdmin
             .from('businesses')
             .update({
               subscription_status: subscription.status,
-              trial_ends_at: subscription.trial_end 
-                ? new Date(subscription.trial_end * 1000).toISOString()
-                : null,
-              subscription_ends_at: subscription.current_period_end
-                ? new Date(subscription.current_period_end * 1000).toISOString()
-                : null,
+              trial_ends_at: dates.trialEnd,
+              subscription_ends_at: dates.periodEnd,
             })
             .eq('id', businessId);
         }
@@ -102,8 +104,7 @@ export async function POST(request: Request) {
         const subscriptionId = invoice.subscription as string;
         
         if (subscriptionId) {
-          const subscriptionResponse = await stripe.subscriptions.retrieve(subscriptionId);
-          const subscription = subscriptionResponse as Stripe.Subscription;
+          const subscription = await stripe.subscriptions.retrieve(subscriptionId);
           const businessId = subscription.metadata?.business_id;
           
           if (businessId) {
