@@ -38,9 +38,10 @@ export async function POST(request: Request) {
         
         if (businessId && session.subscription) {
           // Get subscription details
-          const subscription = await stripe.subscriptions.retrieve(
+          const subscriptionResponse = await stripe.subscriptions.retrieve(
             session.subscription as string
           );
+          const subscription = subscriptionResponse as Stripe.Subscription;
           
           await supabaseAdmin
             .from('businesses')
@@ -50,7 +51,9 @@ export async function POST(request: Request) {
               trial_ends_at: subscription.trial_end 
                 ? new Date(subscription.trial_end * 1000).toISOString()
                 : null,
-              subscription_ends_at: new Date(subscription.current_period_end * 1000).toISOString(),
+              subscription_ends_at: subscription.current_period_end
+                ? new Date(subscription.current_period_end * 1000).toISOString()
+                : null,
             })
             .eq('id', businessId);
         }
@@ -69,7 +72,9 @@ export async function POST(request: Request) {
               trial_ends_at: subscription.trial_end 
                 ? new Date(subscription.trial_end * 1000).toISOString()
                 : null,
-              subscription_ends_at: new Date(subscription.current_period_end * 1000).toISOString(),
+              subscription_ends_at: subscription.current_period_end
+                ? new Date(subscription.current_period_end * 1000).toISOString()
+                : null,
             })
             .eq('id', businessId);
         }
@@ -97,7 +102,8 @@ export async function POST(request: Request) {
         const subscriptionId = invoice.subscription as string;
         
         if (subscriptionId) {
-          const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+          const subscriptionResponse = await stripe.subscriptions.retrieve(subscriptionId);
+          const subscription = subscriptionResponse as Stripe.Subscription;
           const businessId = subscription.metadata?.business_id;
           
           if (businessId) {
@@ -122,4 +128,3 @@ export async function POST(request: Request) {
     );
   }
 }
-
