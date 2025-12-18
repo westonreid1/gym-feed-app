@@ -1,6 +1,3 @@
-Here's the complete `app/onboarding/page.tsx` - copy and replace your entire file with this:
-
-```tsx
 "use client";
 
 import { useState } from "react";
@@ -547,4 +544,3 @@ export default function OnboardingPage() {
     </div>
   );
 }
-```
