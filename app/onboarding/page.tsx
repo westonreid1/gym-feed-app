@@ -155,9 +155,7 @@ export default function OnboardingPage() {
           tagline: tagline || null,
           primary_color: primaryColor,
           owner_id: authData.user.id,
-        })
-        .select()
-        .single();
+        }, { returning: 'minimal' });  // ← ADD THIS OBJECT WITH returning: 'minimal'
 
       if (businessError) throw businessError;
 
