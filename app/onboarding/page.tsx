@@ -135,13 +135,22 @@ export default function OnboardingPage() {
       });
 
       if (authError) throw authError;
-      if (!authData.user) {
+      if (!authData.user || !authData.session) {
         setError("Failed to create account. Please try again.");
         setLoading(false);
         return;
       }
 
-      // Create business - FIXED: only select id to avoid full row RLS check
+      // Force session to be active immediately
+      await supabase.auth.setSession({
+        access_token: authData.session.access_token,
+        refresh_token: authData.session.refresh_token,
+      });
+
+      // Optional safety delay
+      await new Promise(resolve => setTimeout(resolve, 300));
+
+      // Create business
       const { data: business, error: businessError } = await supabase
         .from("businesses")
         .insert({
