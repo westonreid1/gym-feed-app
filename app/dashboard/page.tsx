@@ -295,16 +295,20 @@ export default function DashboardPage() {
     );
   }
 
-  // Redirect to onboarding for new users without a business
-  // Fix for app/dashboard/page.tsx
-// Replace the section around line 298-303 with this:
-
-// Instead of calling router.push() directly in render, use useEffect
+ // Redirect to onboarding for new users without a business
 useEffect(() => {
   if (showOnboarding) {
     router.push("/onboarding");
   }
 }, [showOnboarding, router]);
+
+if (showOnboarding) {
+  return (
+    <div className="min-h-screen bg-background flex items-center justify-center">
+      <Loader2 className="w-8 h-8 text-accent animate-spin" />
+    </div>
+  );
+}
 
 // Then just show loading state while redirecting
 if (showOnboarding) {
