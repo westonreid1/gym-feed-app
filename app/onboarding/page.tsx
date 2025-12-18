@@ -161,7 +161,7 @@ export default function OnboardingPage() {
 
       // Create initial status
       await supabase.from("status").insert({
-        business_id: business.id,
+        business_id: null,  // Temporarily null, or remove this line entirely if status can be created later
         is_open: false,
         message: preset?.defaultStatusMessage || "Welcome! Update your status here.",
       });
