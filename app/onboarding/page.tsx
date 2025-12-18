@@ -1,3 +1,6 @@
+Here's the complete `app/onboarding/page.tsx` - copy and replace your entire file with this:
+
+```tsx
 "use client";
 
 import { useState } from "react";
@@ -18,7 +21,10 @@ import {
   Loader2,
   Zap,
   LogOut,
+  Lock,
   Mail,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { BUSINESS_PRESETS, getBusinessPreset } from "@/types/database";
 
@@ -38,7 +44,7 @@ export default function OnboardingPage() {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [emailSent, setEmailSent] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
 
   // Form data
@@ -48,6 +54,8 @@ export default function OnboardingPage() {
   const [tagline, setTagline] = useState("");
   const [primaryColor, setPrimaryColor] = useState("#22c55e");
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
   // Get preset for selected type
   const preset = businessType ? getBusinessPreset(businessType) : null;
@@ -73,25 +81,28 @@ export default function OnboardingPage() {
     setSlug(generateSlug(name));
   }
 
-  async function handleSendMagicLink() {
+  async function handleCreateAccount() {
     setLoading(true);
     setError(null);
+
+    // Validate passwords match
+    if (password !== confirmPassword) {
+      setError("Passwords do not match");
+      setLoading(false);
+      return;
+    }
+
+    // Validate password length
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters");
+      setLoading(false);
+      return;
+    }
 
     try {
       const supabase = createClient();
 
-      // Store onboarding data in localStorage to retrieve after auth
-      const onboardingData = {
-        businessType,
-        businessName,
-        slug,
-        tagline,
-        primaryColor,
-        email,
-      };
-      localStorage.setItem('onboarding_data', JSON.stringify(onboardingData));
-
-      // Check if slug is available before sending email
+      // Check if slug is available
       const { data: existing } = await supabase
         .from("businesses")
         .select("id")
@@ -104,19 +115,54 @@ export default function OnboardingPage() {
         return;
       }
 
-      // Send magic link
-      const { error: authError } = await supabase.auth.signInWithOtp({
+      // Create the user account with email/password
+      const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
-        options: {
-          emailRedirectTo: `${window.location.origin}/onboarding/setup`,
-        }
+        password,
       });
 
       if (authError) throw authError;
 
-      setEmailSent(true);
+      if (!authData.user) {
+        setError("Failed to create account. Please try again.");
+        setLoading(false);
+        return;
+      }
+
+      // Create the business
+      const { data: business, error: businessError } = await supabase
+        .from("businesses")
+        .insert({
+          name: businessName,
+          slug: slug,
+          type: businessType,
+          tagline: tagline,
+          primary_color: primaryColor,
+          owner_id: authData.user.id,
+        })
+        .select()
+        .single();
+
+      if (businessError) {
+        console.error("Business creation error:", businessError);
+        setError("Failed to create business. Please try again.");
+        setLoading(false);
+        return;
+      }
+
+      // Create initial status record
+      await supabase.from("status").insert({
+        business_id: business.id,
+        is_open: false,
+        message: preset?.defaultStatusMessage || "Welcome! Update your status here.",
+      });
+
+      // Redirect to dashboard
+      router.push("/dashboard");
+
     } catch (err: any) {
-      setError(err.message || 'Failed to send magic link');
+      console.error("Signup error:", err);
+      setError(err.message || "Failed to create account");
     } finally {
       setLoading(false);
     }
@@ -126,63 +172,6 @@ export default function OnboardingPage() {
     const supabase = createClient();
     await supabase.auth.signOut();
     router.push("/login");
-  }
-
-  // Email sent confirmation screen
-  if (emailSent) {
-    return (
-      <div className="min-h-screen bg-background">
-        <header className="border-b border-card-border">
-          <div className="max-w-2xl mx-auto px-6 py-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-accent to-accent/60 flex items-center justify-center">
-                <Zap className="w-5 h-5 text-background" />
-              </div>
-              <span className="text-xl font-bold">StatusBoard</span>
-            </div>
-          </div>
-        </header>
-
-        <main className="max-w-2xl mx-auto px-6 py-12">
-          <div className="text-center space-y-6">
-            <div className="w-20 h-20 bg-accent/10 rounded-full flex items-center justify-center mx-auto">
-              <Mail className="w-10 h-10 text-accent" />
-            </div>
-            
-            <div>
-              <h1 className="text-3xl font-bold mb-3">Check your email</h1>
-              <p className="text-muted text-lg mb-2">
-                We sent a magic link to <strong className="text-foreground">{email}</strong>
-              </p>
-              <p className="text-muted">
-                Click the link in the email to complete your setup. The link expires in 1 hour.
-              </p>
-            </div>
-
-            <div className="bg-card border border-card-border rounded-xl p-6 text-left">
-              <p className="text-sm text-muted mb-2">💡 What happens next:</p>
-              <ol className="space-y-2 text-sm text-muted">
-                <li>1. Check your inbox for an email from StatusBoard</li>
-                <li>2. Click the "Sign in" link in the email</li>
-                <li>3. Your board will be automatically created</li>
-                <li>4. You'll be redirected to your dashboard</li>
-              </ol>
-            </div>
-
-            <button
-              onClick={() => {
-                setEmailSent(false);
-                setEmail('');
-                setStep(4);
-              }}
-              className="text-accent hover:text-accent/80 text-sm"
-            >
-              Use a different email
-            </button>
-          </div>
-        </main>
-      </div>
-    );
   }
 
   return (
@@ -197,19 +186,12 @@ export default function OnboardingPage() {
             <span className="text-xl font-bold">StatusBoard</span>
           </div>
           <div className="flex items-center gap-4">
-            <a
+            
               href="/login"
               className="text-muted hover:text-foreground transition-colors text-sm"
             >
-              Sign in
+              Already have an account? Sign in
             </a>
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-2 text-muted hover:text-foreground transition-colors text-sm"
-            >
-              <LogOut className="w-4 h-4" />
-              <span>Sign out</span>
-            </button>
           </div>
         </div>
       </header>
@@ -459,13 +441,13 @@ export default function OnboardingPage() {
           </div>
         )}
 
-        {/* Step 4: Create Account with Magic Link */}
+        {/* Step 4: Create Account with Email/Password */}
         {step === 4 && (
           <div className="space-y-8">
             <div className="text-center">
               <h1 className="text-3xl font-bold mb-3">Create your account</h1>
               <p className="text-muted text-lg">
-                We'll send you a magic link to sign in. No password needed!
+                Set up your login credentials to access your dashboard.
               </p>
             </div>
 
@@ -474,20 +456,55 @@ export default function OnboardingPage() {
                 <label className="block text-sm font-medium text-muted mb-2">
                   Email address
                 </label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@example.com"
-                  className="w-full bg-card border border-card-border rounded-xl py-4 px-4 text-foreground text-lg placeholder:text-muted/50 focus:outline-none focus:border-accent transition-colors"
-                />
+                <div className="relative">
+                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted" />
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@example.com"
+                    className="w-full bg-card border border-card-border rounded-xl py-4 pl-12 pr-4 text-foreground text-lg placeholder:text-muted/50 focus:outline-none focus:border-accent transition-colors"
+                  />
+                </div>
               </div>
 
-              <div className="bg-card border border-card-border rounded-xl p-4">
-                <p className="text-sm text-muted">
-                  <strong className="text-foreground">📧 What you'll receive:</strong><br/>
-                  A secure link that expires in 1 hour. Click it to complete your setup and access your dashboard.
-                </p>
+              <div>
+                <label className="block text-sm font-medium text-muted mb-2">
+                  Password
+                </label>
+                <div className="relative">
+                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted" />
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="At least 6 characters"
+                    className="w-full bg-card border border-card-border rounded-xl py-4 pl-12 pr-12 text-foreground text-lg placeholder:text-muted/50 focus:outline-none focus:border-accent transition-colors"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-muted hover:text-foreground transition-colors"
+                  >
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-muted mb-2">
+                  Confirm Password
+                </label>
+                <div className="relative">
+                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted" />
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Confirm your password"
+                    className="w-full bg-card border border-card-border rounded-xl py-4 pl-12 pr-4 text-foreground text-lg placeholder:text-muted/50 focus:outline-none focus:border-accent transition-colors"
+                  />
+                </div>
               </div>
             </div>
 
@@ -506,20 +523,20 @@ export default function OnboardingPage() {
                 <span>Back</span>
               </button>
               <button
-                onClick={handleSendMagicLink}
-                disabled={loading || !email.trim()}
+                onClick={handleCreateAccount}
+                disabled={loading || !email.trim() || !password.trim() || !confirmPassword.trim()}
                 className="flex-1 bg-accent hover:bg-accent/90 disabled:bg-accent/50 text-background font-semibold py-4 px-6 rounded-xl transition-all flex items-center justify-center gap-2"
                 style={{ backgroundColor: primaryColor }}
               >
                 {loading ? (
                   <>
                     <Loader2 className="w-5 h-5 animate-spin" />
-                    <span>Sending...</span>
+                    <span>Creating...</span>
                   </>
                 ) : (
                   <>
-                    <Mail className="w-5 h-5" />
-                    <span>Send Magic Link</span>
+                    <Check className="w-5 h-5" />
+                    <span>Create Account</span>
                   </>
                 )}
               </button>
@@ -530,3 +547,4 @@ export default function OnboardingPage() {
     </div>
   );
 }
+```
