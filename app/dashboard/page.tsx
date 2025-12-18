@@ -309,16 +309,6 @@ if (showOnboarding) {
     </div>
   );
 }
-
-// Then just show loading state while redirecting
-if (showOnboarding) {
-  return (
-    <div className="min-h-screen bg-background flex items-center justify-center">
-      <Loader2 className="w-8 h-8 text-accent animate-spin" />
-    </div>
-  );
-}
-
   const BusinessIcon = business ? getBusinessIcon(business.type) : Store;
   const accentColor = business?.primary_color || "#22c55e";
 
