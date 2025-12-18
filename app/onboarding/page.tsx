@@ -182,10 +182,11 @@ export default function OnboardingPage() {
             </div>
             <span className="text-xl font-bold">StatusBoard</span>
           </div>
-          <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4">
             
               href="/login"
-              className="text-muted hover:text-foreground transition-colors text-sm">
+              className="text-muted hover:text-foreground transition-colors text-sm"
+            >
               Already have an account? Sign in
             </a>
           </div>
