@@ -17,7 +17,6 @@ import {
   Check,
   Loader2,
   Zap,
-  LogOut,
   Lock,
   Mail,
   Eye,
@@ -25,7 +24,6 @@ import {
 } from "lucide-react";
 import { BUSINESS_PRESETS, getBusinessPreset } from "@/types/database";
 
-// Icon mapping
 const ICONS: Record<string, React.ElementType> = {
   Dumbbell,
   Scissors,
@@ -44,7 +42,6 @@ export default function OnboardingPage() {
   const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
 
-  // Form data
   const [businessType, setBusinessType] = useState<string>("");
   const [businessName, setBusinessName] = useState("");
   const [slug, setSlug] = useState("");
@@ -54,7 +51,6 @@ export default function OnboardingPage() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  // Get preset for selected type
   const preset = businessType ? getBusinessPreset(businessType) : null;
 
   function generateSlug(name: string) {
@@ -82,14 +78,12 @@ export default function OnboardingPage() {
     setLoading(true);
     setError(null);
 
-    // Validate passwords match
     if (password !== confirmPassword) {
       setError("Passwords do not match");
       setLoading(false);
       return;
     }
 
-    // Validate password length
     if (password.length < 6) {
       setError("Password must be at least 6 characters");
       setLoading(false);
@@ -99,7 +93,6 @@ export default function OnboardingPage() {
     try {
       const supabase = createClient();
 
-      // Check if slug is available
       const { data: existing } = await supabase
         .from("businesses")
         .select("id")
@@ -112,7 +105,6 @@ export default function OnboardingPage() {
         return;
       }
 
-      // Create the user account with email/password
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
@@ -126,7 +118,6 @@ export default function OnboardingPage() {
         return;
       }
 
-      // Create the business
       const { data: business, error: businessError } = await supabase
         .from("businesses")
         .insert({
@@ -147,14 +138,12 @@ export default function OnboardingPage() {
         return;
       }
 
-      // Create initial status record
       await supabase.from("status").insert({
         business_id: business.id,
         is_open: false,
         message: preset?.defaultStatusMessage || "Welcome! Update your status here.",
       });
 
-      // Redirect to dashboard
       router.push("/dashboard");
 
     } catch (err: any) {
@@ -165,15 +154,8 @@ export default function OnboardingPage() {
     }
   }
 
-  async function handleLogout() {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    router.push("/login");
-  }
-
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <header className="border-b border-card-border">
         <div className="max-w-2xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -182,38 +164,27 @@ export default function OnboardingPage() {
             </div>
             <span className="text-xl font-bold">StatusBoard</span>
           </div>
-        <div className="flex items-center gap-4">
-            
-              href="/login"
-              className="text-muted hover:text-foreground transition-colors text-sm"
-            >
-              Already have an account? Sign in
-            </a>
+          <div className="flex items-center gap-4">
+            <a href="/login" className="text-muted hover:text-foreground transition-colors text-sm">Already have an account? Sign in</a>
           </div>
         </div>
       </header>
 
       <main className="max-w-2xl mx-auto px-6 py-12">
-        {/* Progress */}
         <div className="flex items-center justify-center gap-3 mb-12">
           {[1, 2, 3, 4].map((s) => (
             <div
               key={s}
-              className={`w-3 h-3 rounded-full transition-colors ${
-                s <= step ? "bg-accent" : "bg-card-border"
-              }`}
+              className={`w-3 h-3 rounded-full transition-colors ${s <= step ? "bg-accent" : "bg-card-border"}`}
             />
           ))}
         </div>
 
-        {/* Step 1: Choose Business Type */}
         {step === 1 && (
           <div className="space-y-8">
             <div className="text-center">
               <h1 className="text-3xl font-bold mb-3">What type of business?</h1>
-              <p className="text-muted text-lg">
-                This helps us set up the perfect template for you.
-              </p>
+              <p className="text-muted text-lg">This helps us set up the perfect template for you.</p>
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -223,25 +194,12 @@ export default function OnboardingPage() {
                   <button
                     key={preset.value}
                     onClick={() => handleTypeSelect(preset.value)}
-                    className={`flex flex-col items-center gap-3 p-6 rounded-2xl border-2 transition-all ${
-                      businessType === preset.value
-                        ? "border-accent bg-accent/10"
-                        : "border-card-border bg-card hover:border-accent/30"
-                    }`}
+                    className={`flex flex-col items-center gap-3 p-6 rounded-2xl border-2 transition-all ${businessType === preset.value ? "border-accent bg-accent/10" : "border-card-border bg-card hover:border-accent/30"}`}
                   >
-                    <div
-                      className="w-14 h-14 rounded-xl flex items-center justify-center"
-                      style={{ backgroundColor: `${preset.color}20` }}
-                    >
+                    <div className="w-14 h-14 rounded-xl flex items-center justify-center" style={{ backgroundColor: `${preset.color}20` }}>
                       <Icon className="w-7 h-7" style={{ color: preset.color }} />
                     </div>
-                    <span
-                      className={`font-medium text-center ${
-                        businessType === preset.value ? "text-foreground" : "text-muted"
-                      }`}
-                    >
-                      {preset.label}
-                    </span>
+                    <span className={`font-medium text-center ${businessType === preset.value ? "text-foreground" : "text-muted"}`}>{preset.label}</span>
                   </button>
                 );
               })}
@@ -258,21 +216,16 @@ export default function OnboardingPage() {
           </div>
         )}
 
-        {/* Step 2: Business Details */}
         {step === 2 && (
           <div className="space-y-8">
             <div className="text-center">
               <h1 className="text-3xl font-bold mb-3">Tell us about your business</h1>
-              <p className="text-muted text-lg">
-                This info will appear on your public status board.
-              </p>
+              <p className="text-muted text-lg">This info will appear on your public status board.</p>
             </div>
 
             <div className="space-y-6">
               <div>
-                <label className="block text-sm font-medium text-muted mb-2">
-                  Business Name
-                </label>
+                <label className="block text-sm font-medium text-muted mb-2">Business Name</label>
                 <input
                   type="text"
                   value={businessName}
@@ -283,13 +236,9 @@ export default function OnboardingPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-muted mb-2">
-                  Your URL
-                </label>
+                <label className="block text-sm font-medium text-muted mb-2">Your URL</label>
                 <div className="flex items-center bg-card border border-card-border rounded-xl overflow-hidden">
-                  <span className="px-4 py-4 text-muted bg-card-border/30">
-                    statusboard.app/
-                  </span>
+                  <span className="px-4 py-4 text-muted bg-card-border/30">statusboard.app/</span>
                   <input
                     type="text"
                     value={slug}
@@ -301,9 +250,7 @@ export default function OnboardingPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-muted mb-2">
-                  Tagline (optional)
-                </label>
+                <label className="block text-sm font-medium text-muted mb-2">Tagline (optional)</label>
                 <input
                   type="text"
                   value={tagline}
@@ -315,10 +262,7 @@ export default function OnboardingPage() {
             </div>
 
             <div className="flex gap-3">
-              <button
-                onClick={() => setStep(1)}
-                className="flex-1 bg-card border border-card-border hover:border-accent/30 text-foreground font-semibold py-4 px-6 rounded-xl transition-all flex items-center justify-center gap-2"
-              >
+              <button onClick={() => setStep(1)} className="flex-1 bg-card border border-card-border hover:border-accent/30 text-foreground font-semibold py-4 px-6 rounded-xl transition-all flex items-center justify-center gap-2">
                 <ArrowLeft className="w-5 h-5" />
                 <span>Back</span>
               </button>
@@ -334,36 +278,22 @@ export default function OnboardingPage() {
           </div>
         )}
 
-        {/* Step 3: Customize & Preview */}
         {step === 3 && (
           <div className="space-y-8">
             <div className="text-center">
               <h1 className="text-3xl font-bold mb-3">Customize your look</h1>
-              <p className="text-muted text-lg">
-                Choose your accent color. You can change this anytime.
-              </p>
+              <p className="text-muted text-lg">Choose your accent color. You can change this anytime.</p>
             </div>
 
-            {/* Color picker */}
             <div>
-              <label className="block text-sm font-medium text-muted mb-4">
-                Accent Color
-              </label>
+              <label className="block text-sm font-medium text-muted mb-4">Accent Color</label>
               <div className="flex flex-wrap gap-3">
-                {[
-                  "#22c55e", "#3b82f6", "#f59e0b", "#ec4899", 
-                  "#8b5cf6", "#ef4444", "#0891b2", "#78350f",
-                ].map((color) => (
+                {["#22c55e", "#3b82f6", "#f59e0b", "#ec4899", "#8b5cf6", "#ef4444", "#0891b2", "#78350f"].map((color) => (
                   <button
                     key={color}
                     onClick={() => setPrimaryColor(color)}
                     className="w-12 h-12 rounded-xl transition-transform hover:scale-110"
-                    style={{
-                      backgroundColor: color,
-                      boxShadow: primaryColor === color 
-                        ? `0 0 0 3px var(--background), 0 0 0 5px ${color}` 
-                        : "none",
-                    }}
+                    style={{ backgroundColor: color, boxShadow: primaryColor === color ? `0 0 0 3px var(--background), 0 0 0 5px ${color}` : "none" }}
                   />
                 ))}
                 <input
@@ -375,18 +305,12 @@ export default function OnboardingPage() {
               </div>
             </div>
 
-            {/* Preview */}
             <div className="rounded-2xl border border-card-border overflow-hidden">
-              <div className="bg-card-border/30 px-4 py-2 text-xs text-muted">
-                Preview
-              </div>
+              <div className="bg-card-border/30 px-4 py-2 text-xs text-muted">Preview</div>
               <div className="bg-card p-6">
                 <div className="flex items-center gap-3 mb-4">
                   {preset && (
-                    <div
-                      className="w-12 h-12 rounded-xl flex items-center justify-center"
-                      style={{ backgroundColor: `${primaryColor}20` }}
-                    >
+                    <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ backgroundColor: `${primaryColor}20` }}>
                       {(() => {
                         const Icon = ICONS[preset.icon] || Store;
                         return <Icon className="w-6 h-6" style={{ color: primaryColor }} />;
@@ -398,31 +322,18 @@ export default function OnboardingPage() {
                     <p className="text-sm text-muted">{tagline || preset?.tagline}</p>
                   </div>
                 </div>
-                <div
-                  className="rounded-xl p-4"
-                  style={{ backgroundColor: `${primaryColor}15`, borderColor: `${primaryColor}30` }}
-                >
+                <div className="rounded-xl p-4" style={{ backgroundColor: `${primaryColor}15`, borderColor: `${primaryColor}30` }}>
                   <div className="flex items-center gap-2">
-                    <div
-                      className="w-3 h-3 rounded-full"
-                      style={{ backgroundColor: primaryColor }}
-                    />
-                    <span className="font-semibold" style={{ color: primaryColor }}>
-                      {preset?.statusOpenText || "Open"}
-                    </span>
+                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: primaryColor }} />
+                    <span className="font-semibold" style={{ color: primaryColor }}>{preset?.statusOpenText || "Open"}</span>
                   </div>
-                  <p className="text-foreground/70 mt-1">
-                    {preset?.defaultStatusMessage}
-                  </p>
+                  <p className="text-foreground/70 mt-1">{preset?.defaultStatusMessage}</p>
                 </div>
               </div>
             </div>
 
             <div className="flex gap-3">
-              <button
-                onClick={() => setStep(2)}
-                className="flex-1 bg-card border border-card-border hover:border-accent/30 text-foreground font-semibold py-4 px-6 rounded-xl transition-all flex items-center justify-center gap-2"
-              >
+              <button onClick={() => setStep(2)} className="flex-1 bg-card border border-card-border hover:border-accent/30 text-foreground font-semibold py-4 px-6 rounded-xl transition-all flex items-center justify-center gap-2">
                 <ArrowLeft className="w-5 h-5" />
                 <span>Back</span>
               </button>
@@ -438,21 +349,16 @@ export default function OnboardingPage() {
           </div>
         )}
 
-        {/* Step 4: Create Account with Email/Password */}
         {step === 4 && (
           <div className="space-y-8">
             <div className="text-center">
               <h1 className="text-3xl font-bold mb-3">Create your account</h1>
-              <p className="text-muted text-lg">
-                Set up your login credentials to access your dashboard.
-              </p>
+              <p className="text-muted text-lg">Set up your login credentials to access your dashboard.</p>
             </div>
 
             <div className="space-y-6">
               <div>
-                <label className="block text-sm font-medium text-muted mb-2">
-                  Email address
-                </label>
+                <label className="block text-sm font-medium text-muted mb-2">Email address</label>
                 <div className="relative">
                   <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted" />
                   <input
@@ -466,9 +372,7 @@ export default function OnboardingPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-muted mb-2">
-                  Password
-                </label>
+                <label className="block text-sm font-medium text-muted mb-2">Password</label>
                 <div className="relative">
                   <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted" />
                   <input
@@ -478,20 +382,14 @@ export default function OnboardingPage() {
                     placeholder="At least 6 characters"
                     className="w-full bg-card border border-card-border rounded-xl py-4 pl-12 pr-12 text-foreground text-lg placeholder:text-muted/50 focus:outline-none focus:border-accent transition-colors"
                   />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-muted hover:text-foreground transition-colors"
-                  >
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-muted hover:text-foreground transition-colors">
                     {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-muted mb-2">
-                  Confirm Password
-                </label>
+                <label className="block text-sm font-medium text-muted mb-2">Confirm Password</label>
                 <div className="relative">
                   <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted" />
                   <input
@@ -506,16 +404,11 @@ export default function OnboardingPage() {
             </div>
 
             {error && (
-              <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-500">
-                {error}
-              </div>
+              <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-500">{error}</div>
             )}
 
             <div className="flex gap-3">
-              <button
-                onClick={() => setStep(3)}
-                className="flex-1 bg-card border border-card-border hover:border-accent/30 text-foreground font-semibold py-4 px-6 rounded-xl transition-all flex items-center justify-center gap-2"
-              >
+              <button onClick={() => setStep(3)} className="flex-1 bg-card border border-card-border hover:border-accent/30 text-foreground font-semibold py-4 px-6 rounded-xl transition-all flex items-center justify-center gap-2">
                 <ArrowLeft className="w-5 h-5" />
                 <span>Back</span>
               </button>
