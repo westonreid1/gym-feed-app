@@ -93,19 +93,16 @@ export default function OnboardingPage() {
       setLoading(false);
       return;
     }
-
     if (password !== confirmPassword) {
       setError("Passwords do not match");
       setLoading(false);
       return;
     }
-
     if (password.length < 6) {
       setError("Password must be at least 6 characters");
       setLoading(false);
       return;
     }
-
     if (!isValidSlug(slug)) {
       setError("URL must be at least 3 characters and contain only letters, numbers, and hyphens");
       setLoading(false);
@@ -115,7 +112,7 @@ export default function OnboardingPage() {
     try {
       const supabase = createClient();
 
-      // Check slug availability (fixed: no .single() when no row expected)
+      // Check slug availability
       const { data: existingBusinesses, error: checkError } = await supabase
         .from("businesses")
         .select("id")
@@ -125,7 +122,6 @@ export default function OnboardingPage() {
       if (checkError && checkError.code !== "PGRST116") {
         throw checkError;
       }
-
       if (existingBusinesses && existingBusinesses.length > 0) {
         setError("This URL is already taken. Please choose a different name or edit the URL.");
         setLoading(false);
@@ -145,7 +141,7 @@ export default function OnboardingPage() {
         return;
       }
 
-      // Create business
+      // Create business - FIXED: only select id to avoid full row RLS check
       const { data: business, error: businessError } = await supabase
         .from("businesses")
         .insert({
@@ -155,13 +151,15 @@ export default function OnboardingPage() {
           tagline: tagline || null,
           primary_color: primaryColor,
           owner_id: authData.user.id,
-        }, { returning: 'minimal' });  // ← ADD THIS OBJECT WITH returning: 'minimal'
+        })
+        .select('id')
+        .single();
 
       if (businessError) throw businessError;
 
       // Create initial status
       await supabase.from("status").insert({
-        business_id: null,  // Temporarily null, or remove this line entirely if status can be created later
+        business_id: business.id,
         is_open: false,
         message: preset?.defaultStatusMessage || "Welcome! Update your status here.",
       });
